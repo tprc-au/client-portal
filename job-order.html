@@ -1,0 +1,465 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TPRC Client Portal - Job Order Details</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="css/tprc-brand.css" rel="stylesheet">
+    <link href="css/styles.css" rel="stylesheet">
+</head>
+<body class="job-order-page">
+    <!-- Navigation -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-tprc-primary">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="dashboard.html">
+                <svg width="40" height="20" viewBox="0 0 120 60" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <rect width="120" height="60" rx="8" fill="white"/>
+                    <text x="60" y="35" text-anchor="middle" fill="#2C5282" font-family="Arial, sans-serif" font-weight="bold" font-size="18">TPRC</text>
+                </svg>
+                <span class="ms-2">Client Portal</span>
+            </a>
+            
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav me-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="dashboard.html">
+                            <i class="fas fa-tachometer-alt me-1"></i>Dashboard
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="company-profile.html">
+                            <i class="fas fa-building me-1"></i>Company Profile
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="documents.html">
+                            <i class="fas fa-file-upload me-1"></i>Documents
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="support.html">
+                            <i class="fas fa-life-ring me-1"></i>Support
+                        </a>
+                    </li>
+                </ul>
+                
+                <ul class="navbar-nav">
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle d-flex align-items-center" href="#" role="button" data-bs-toggle="dropdown">
+                            <i class="fas fa-user-circle me-2"></i>
+                            <span id="user-name">Loading...</span>
+                        </a>
+                        <ul class="dropdown-menu">
+                            <li><a class="dropdown-item" href="company-profile.html" id="company-profile">
+                                <i class="fas fa-building me-2"></i>Company Profile
+                            </a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item" href="#" id="logout-btn">
+                                <i class="fas fa-sign-out-alt me-2"></i>Logout
+                            </a></li>
+                        </ul>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Breadcrumb -->
+    <div class="container-fluid mt-3">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="dashboard.html">Dashboard</a></li>
+                <li class="breadcrumb-item active">Job Order Details</li>
+            </ol>
+        </nav>
+    </div>
+
+    <!-- Main Content -->
+    <div class="container-fluid">
+        <!-- Job Order Header -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-body">
+                        <div class="row align-items-center">
+                            <div class="col-md-8">
+                                <h2 class="mb-2" id="job-title">Loading...</h2>
+                                <div class="d-flex flex-wrap gap-3 mb-3">
+                                    <span class="badge bg-primary" id="job-type">-</span>
+                                    <span class="badge bg-info" id="job-location">-</span>
+                                    <span class="badge bg-success" id="job-status">-</span>
+                                </div>
+                                <p class="mb-0 text-muted" id="job-description">Loading job description...</p>
+                            </div>
+                            <div class="col-md-4 text-end">
+                                <button class="btn btn-outline-primary btn-sm mb-2" id="edit-job-btn">
+                                    <i class="fas fa-edit me-1"></i>Request Changes
+                                </button>
+                                <div class="text-muted small">
+                                    <div><strong>Created:</strong> <span id="job-created-date">-</span></div>
+                                    <div><strong>Deadline:</strong> <span id="job-deadline">-</span></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Job Details Tabs -->
+        <div class="row">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header">
+                        <ul class="nav nav-tabs card-header-tabs" id="jobTabs" role="tablist">
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link active" id="candidates-tab" data-bs-toggle="tab" data-bs-target="#candidates" type="button" role="tab">
+                                    <i class="fas fa-users me-1"></i>Candidates <span class="badge bg-secondary ms-1" id="candidates-count">0</span>
+                                </button>
+                            </li>
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link" id="requirements-tab" data-bs-toggle="tab" data-bs-target="#requirements" type="button" role="tab">
+                                    <i class="fas fa-list-check me-1"></i>Requirements
+                                </button>
+                            </li>
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link" id="history-tab" data-bs-toggle="tab" data-bs-target="#history" type="button" role="tab">
+                                    <i class="fas fa-history me-1"></i>History
+                                </button>
+                            </li>
+                        </ul>
+                    </div>
+                    <div class="card-body">
+                        <div class="tab-content" id="jobTabsContent">
+                            <!-- Candidates Tab -->
+                            <div class="tab-pane fade show active" id="candidates" role="tabpanel">
+                                <div class="d-flex justify-content-between align-items-center mb-3">
+                                    <h5 class="mb-0">Available Candidates</h5>
+                                    <div class="d-flex gap-2">
+                                        <div class="input-group" style="width: 250px;">
+                                            <span class="input-group-text"><i class="fas fa-search"></i></span>
+                                            <input type="text" class="form-control" placeholder="Search candidates..." id="search-candidates">
+                                        </div>
+                                        <select class="form-select" style="width: 150px;" id="filter-candidates">
+                                            <option value="">All Candidates</option>
+                                            <option value="available">Available</option>
+                                            <option value="interviewing">Interviewing</option>
+                                            <option value="selected">Selected</option>
+                                            <option value="rejected">Rejected</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                
+                                <div id="candidates-list">
+                                    <div class="text-center py-4">
+                                        <div class="spinner-border text-primary" role="status">
+                                            <span class="visually-hidden">Loading...</span>
+                                        </div>
+                                        <p class="mt-2 mb-0">Loading candidates...</p>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Requirements Tab -->
+                            <div class="tab-pane fade" id="requirements" role="tabpanel">
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <h6>Essential Requirements</h6>
+                                        <ul id="essential-requirements" class="list-unstyled">
+                                            <li class="mb-2"><i class="fas fa-check-circle text-success me-2"></i>Loading...</li>
+                                        </ul>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <h6>Preferred Qualifications</h6>
+                                        <ul id="preferred-requirements" class="list-unstyled">
+                                            <li class="mb-2"><i class="fas fa-plus-circle text-info me-2"></i>Loading...</li>
+                                        </ul>
+                                    </div>
+                                </div>
+                                
+                                <hr>
+                                
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <h6>Salary Range</h6>
+                                        <p id="salary-range">Loading...</p>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <h6>Benefits</h6>
+                                        <p id="benefits">Loading...</p>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- History Tab -->
+                            <div class="tab-pane fade" id="history" role="tabpanel">
+                                <div class="timeline" id="job-history">
+                                    <div class="text-center py-4">
+                                        <div class="spinner-border text-primary" role="status">
+                                            <span class="visually-hidden">Loading...</span>
+                                        </div>
+                                        <p class="mt-2 mb-0">Loading job history...</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Candidate Approval Confirmation Modal -->
+    <div class="modal fade" id="approveConfirmationModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Confirm Candidate Approval</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="text-center">
+                        <i class="fas fa-check-circle text-success fa-3x mb-3"></i>
+                        <h6>Are you sure you want to approve this candidate?</h6>
+                        <p class="text-muted mb-0" id="approve-candidate-name">Candidate Name</p>
+                        <p class="text-muted">This action will mark the candidate as "Selected" in your recruitment system.</p>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-success" id="confirm-approve-btn">
+                        <i class="fas fa-check me-1"></i>Approve Candidate
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Candidate Action Modal -->
+    <div class="modal fade" id="candidateActionModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="candidateActionTitle">Candidate Action</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row">
+                        <div class="col-md-4 text-center">
+                            <div class="candidate-avatar mb-3">
+                                <i class="fas fa-user-circle fa-5x text-muted"></i>
+                            </div>
+                            <h6 id="modal-candidate-name">Candidate Name</h6>
+                            <p class="text-muted small" id="modal-candidate-location">Location</p>
+                        </div>
+                        <div class="col-md-8">
+                            <form id="candidate-action-form">
+                                <input type="hidden" id="candidate-id" name="candidateId">
+                                <input type="hidden" id="action-type" name="actionType">
+                                
+                                <div class="mb-3">
+                                    <label for="action-reason" class="form-label">Reason *</label>
+                                    <select class="form-select" id="action-reason" name="reason" required>
+                                        <!-- Options will be populated based on action type -->
+                                    </select>
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label for="action-notes" class="form-label">Additional Notes</label>
+                                    <textarea class="form-control" id="action-notes" name="notes" rows="4" placeholder="Add any additional comments..."></textarea>
+                                </div>
+                                
+                                <div class="mb-3" id="interview-scheduling" style="display: none;">
+                                    <label for="interview-date" class="form-label">Interview Date & Time</label>
+                                    <input type="datetime-local" class="form-control" id="interview-date" name="interviewDate">
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary" id="confirm-action-btn">Confirm Action</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="js/auth.js"></script>
+    <script src="js/hubspot-api.js"></script>
+    <script src="js/app.js"></script>
+    <script>
+        let currentJobOrder = null;
+        let candidates = [];
+
+        document.addEventListener('DOMContentLoaded', function() {
+            // Check authentication
+            if (!isAuthenticated()) {
+                window.location.href = 'index.html';
+                return;
+            }
+            
+            // Get job order ID from URL
+            const urlParams = new URLSearchParams(window.location.search);
+            const jobOrderId = urlParams.get('id');
+            
+            if (!jobOrderId) {
+                alert('No job order specified');
+                window.location.href = 'dashboard.html';
+                return;
+            }
+            
+            // Load job order data
+            loadJobOrderDetails(jobOrderId);
+            
+            // Setup event listeners
+            setupEventListeners();
+        });
+
+        function setupEventListeners() {
+            // Search and filter
+            document.getElementById('search-candidates').addEventListener('input', filterCandidates);
+            document.getElementById('filter-candidates').addEventListener('change', filterCandidates);
+            
+            // Logout
+            document.getElementById('logout-btn').addEventListener('click', logout);
+            
+            // Candidate action form
+            document.getElementById('confirm-action-btn').addEventListener('click', submitCandidateAction);
+        }
+
+        function filterCandidates() {
+            const searchTerm = document.getElementById('search-candidates').value.toLowerCase();
+            const statusFilter = document.getElementById('filter-candidates').value;
+            
+            // Filter and re-render candidates
+            renderCandidates(candidates.filter(candidate => {
+                const matchesSearch = candidate.name.toLowerCase().includes(searchTerm) ||
+                                    candidate.location.toLowerCase().includes(searchTerm);
+                const matchesStatus = !statusFilter || candidate.status === statusFilter;
+                return matchesSearch && matchesStatus;
+            }));
+        }
+
+        function showCandidateAction(candidateId, actionType) {
+            const candidate = candidates.find(c => c.id === candidateId);
+            if (!candidate) return;
+            
+            // Populate modal
+            document.getElementById('modal-candidate-name').textContent = candidate.name;
+            document.getElementById('modal-candidate-location').textContent = `${candidate.age} years, ${candidate.location}`;
+            document.getElementById('candidate-id').value = candidateId;
+            document.getElementById('action-type').value = actionType;
+            
+            // Set modal title and populate reason options
+            const modal = document.getElementById('candidateActionModal');
+            const title = document.getElementById('candidateActionTitle');
+            const reasonSelect = document.getElementById('action-reason');
+            const interviewDiv = document.getElementById('interview-scheduling');
+            
+            reasonSelect.innerHTML = '';
+            interviewDiv.style.display = 'none';
+            
+            switch(actionType) {
+                case 'approve':
+                    title.textContent = 'Approve Candidate';
+                    reasonSelect.innerHTML = `
+                        <option value="">Select reason for approval</option>
+                        <option value="skills-excellent">Excellent skills match</option>
+                        <option value="experience-relevant">Relevant experience</option>
+                        <option value="cultural-fit">Good cultural fit</option>
+                        <option value="qualifications">Strong qualifications</option>
+                    `;
+                    break;
+                case 'reject':
+                    title.textContent = 'Reject Candidate';
+                    reasonSelect.innerHTML = `
+                        <option value="">Select reason for rejection</option>
+                        <option value="skills-mismatch">Skills mismatch</option>
+                        <option value="experience-insufficient">Insufficient experience</option>
+                        <option value="overqualified">Overqualified</option>
+                        <option value="salary-expectations">Salary expectations too high</option>
+                        <option value="availability">Availability issues</option>
+                        <option value="other">Other</option>
+                    `;
+                    break;
+                case 'interview':
+                    title.textContent = 'Schedule Interview';
+                    reasonSelect.innerHTML = `
+                        <option value="">Select interview type</option>
+                        <option value="phone-screening">Phone screening</option>
+                        <option value="video-interview">Video interview</option>
+                        <option value="in-person">In-person interview</option>
+                        <option value="technical-assessment">Technical assessment</option>
+                    `;
+                    interviewDiv.style.display = 'block';
+                    break;
+            }
+            
+            // Show modal
+            new bootstrap.Modal(modal).show();
+        }
+
+        function submitCandidateAction() {
+            const form = document.getElementById('candidate-action-form');
+            const formData = new FormData(form);
+            
+            // Validate required fields
+            if (!formData.get('reason')) {
+                alert('Please select a reason');
+                return;
+            }
+            
+            // Submit action
+            const actionData = {
+                candidateId: formData.get('candidateId'),
+                actionType: formData.get('actionType'),
+                reason: formData.get('reason'),
+                notes: formData.get('notes'),
+                interviewDate: formData.get('interviewDate')
+            };
+            
+            // Here you would call the HubSpot API to update the candidate status
+            submitCandidateActionToHubSpot(actionData)
+                .then(response => {
+                    // Close modal and refresh candidates
+                    bootstrap.Modal.getInstance(document.getElementById('candidateActionModal')).hide();
+                    loadJobOrderDetails(currentJobOrder.id);
+                    
+                    // Show success message
+                    showAlert('success', `Candidate action "${actionData.actionType}" submitted successfully!`);
+                })
+                .catch(error => {
+                    console.error('Error submitting candidate action:', error);
+                    showAlert('danger', 'Failed to submit candidate action. Please try again.');
+                });
+        }
+
+        function showAlert(type, message) {
+            // Create and show bootstrap alert
+            const alertDiv = document.createElement('div');
+            alertDiv.className = `alert alert-${type} alert-dismissible fade show`;
+            alertDiv.innerHTML = `
+                ${message}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            `;
+            
+            document.querySelector('.container-fluid').insertBefore(alertDiv, document.querySelector('.container-fluid').firstChild);
+            
+            // Auto-dismiss after 5 seconds
+            setTimeout(() => {
+                if (alertDiv.parentNode) {
+                    alertDiv.remove();
+                }
+            }, 5000);
+        }
+    </script>
+</body>
+</html>

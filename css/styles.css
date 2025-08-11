@@ -1,0 +1,557 @@
+/* Main Application Styles */
+
+/* Base Layout */
+html, body {
+    height: 100%;
+    margin: 0;
+    padding: 0;
+    background-color: #F8FAFC;
+}
+
+.container-fluid {
+    max-width: 1400px;
+}
+
+/* Login Page Styles */
+.login-page {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    min-height: 100vh;
+}
+
+.login-page .row {
+    min-height: 100vh;
+}
+
+.login-form-container {
+    padding: 2rem;
+}
+
+.login-form-container .card {
+    border: none;
+    border-radius: 1rem;
+    box-shadow: 0 15px 35px rgba(0, 0, 0, 0.1);
+}
+
+.login-form-container .card-body {
+    padding: 2.5rem;
+}
+
+.input-group-text {
+    background-color: #F8FAFC;
+    border-right: none;
+    color: #64748B;
+}
+
+.input-group .form-control {
+    border-left: none;
+    padding-left: 0;
+}
+
+.input-group .form-control:focus {
+    box-shadow: none;
+}
+
+/* Dashboard Styles */
+.dashboard-page {
+    background-color: #F8FAFC;
+}
+
+.navbar {
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.stats-card {
+    border-radius: 1rem;
+    padding: 1.5rem;
+    color: white;
+    margin-bottom: 1.5rem;
+    transition: transform 0.3s ease;
+}
+
+.stats-card:hover {
+    transform: translateY(-5px);
+}
+
+.stats-card h3 {
+    font-size: 2.5rem;
+    font-weight: 700;
+    margin-bottom: 0;
+}
+
+.stats-card h6 {
+    font-size: 0.9rem;
+    font-weight: 500;
+    opacity: 0.9;
+}
+
+/* Job Orders Table */
+.table-responsive {
+    border-radius: 0.75rem;
+    overflow: hidden;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+}
+
+.table thead th {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    font-weight: 600;
+    text-transform: uppercase;
+    font-size: 0.8rem;
+    letter-spacing: 0.5px;
+    border: none;
+    padding: 1.25rem 1rem;
+}
+
+.table tbody td {
+    padding: 1.25rem 1rem;
+    vertical-align: middle;
+    border-bottom: 1px solid #E2E8F0;
+}
+
+.table tbody tr:last-child td {
+    border-bottom: none;
+}
+
+.table .btn-group .btn {
+    padding: 0.375rem 0.75rem;
+    font-size: 0.85rem;
+    margin-right: 0.25rem;
+}
+
+/* Status Badges */
+.status-badge {
+    padding: 0.5rem 1rem;
+    border-radius: 2rem;
+    font-size: 0.8rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.status-active {
+    background-color: rgba(34, 197, 94, 0.1);
+    color: #15803d;
+}
+
+.status-filled {
+    background-color: rgba(59, 130, 246, 0.1);
+    color: #1d4ed8;
+}
+
+.status-on-hold {
+    background-color: rgba(251, 191, 36, 0.1);
+    color: #92400e;
+}
+
+.status-closed {
+    background-color: rgba(156, 163, 175, 0.1);
+    color: #374151;
+}
+
+/* Candidate Cards */
+.candidate-card {
+    border: none;
+    border-radius: 1rem;
+    transition: all 0.3s ease;
+    margin-bottom: 1.5rem;
+    background: white;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+.candidate-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+}
+
+.candidate-avatar {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 2rem;
+    margin: 0 auto 1rem;
+}
+
+.skill-tag {
+    background-color: #F1F5F9;
+    color: #475569;
+    padding: 0.25rem 0.75rem;
+    border-radius: 1rem;
+    font-size: 0.8rem;
+    margin: 0.25rem;
+    display: inline-block;
+}
+
+/* Action Buttons */
+.action-btn-group {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
+
+.action-btn {
+    padding: 0.5rem 1rem;
+    border-radius: 0.5rem;
+    font-size: 0.85rem;
+    font-weight: 500;
+    border: none;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    flex: 1;
+    min-width: 100px;
+}
+
+.action-btn-approve {
+    background-color: #10B981;
+    color: white;
+}
+
+.action-btn-approve:hover {
+    background-color: #059669;
+    transform: translateY(-1px);
+}
+
+.action-btn-interview {
+    background-color: #F59E0B;
+    color: white;
+}
+
+.action-btn-interview:hover {
+    background-color: #D97706;
+    transform: translateY(-1px);
+}
+
+.action-btn-reject {
+    background-color: #EF4444;
+    color: white;
+}
+
+.action-btn-reject:hover {
+    background-color: #DC2626;
+    transform: translateY(-1px);
+}
+
+/* Document Management */
+.document-checklist {
+    max-height: 500px;
+    overflow-y: auto;
+}
+
+.checklist-item {
+    padding: 1rem;
+    border-radius: 0.5rem;
+    transition: background-color 0.3s ease;
+}
+
+.checklist-item:hover {
+    background-color: #F8FAFC;
+}
+
+.checklist-item.completed {
+    background-color: rgba(34, 197, 94, 0.05);
+}
+
+.checklist-item.completed .fas.fa-circle {
+    display: none;
+}
+
+.checklist-item.completed .fas.fa-circle-check {
+    display: inline;
+}
+
+.document-upload-area {
+    border: 2px dashed #CBD5E0;
+    border-radius: 1rem;
+    padding: 3rem;
+    text-align: center;
+    transition: all 0.3s ease;
+    cursor: pointer;
+}
+
+.document-upload-area:hover {
+    border-color: #3B82F6;
+    background-color: rgba(59, 130, 246, 0.05);
+}
+
+.document-upload-area.dragover {
+    border-color: #10B981;
+    background-color: rgba(16, 185, 129, 0.05);
+}
+
+.file-item {
+    background-color: #F8FAFC;
+    border: 1px solid #E2E8F0;
+    border-radius: 0.5rem;
+    padding: 0.75rem;
+    margin-bottom: 0.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: between;
+}
+
+/* Support Page */
+.support-card {
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.support-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+}
+
+.support-icon {
+    margin-bottom: 1.5rem;
+}
+
+/* Timeline Styles */
+.timeline {
+    position: relative;
+    padding: 1rem 0;
+}
+
+.timeline::before {
+    content: '';
+    position: absolute;
+    left: 30px;
+    top: 0;
+    bottom: 0;
+    width: 2px;
+    background: linear-gradient(to bottom, #667eea, #764ba2);
+}
+
+.timeline-item {
+    position: relative;
+    margin-bottom: 2rem;
+    padding-left: 4rem;
+}
+
+.timeline-item::before {
+    content: '';
+    position: absolute;
+    left: 22px;
+    top: 8px;
+    width: 16px;
+    height: 16px;
+    background: white;
+    border: 3px solid #667eea;
+    border-radius: 50%;
+    z-index: 1;
+}
+
+.timeline-item.completed::before {
+    background: #10B981;
+    border-color: #10B981;
+}
+
+.timeline-small {
+    font-size: 0.9rem;
+}
+
+.timeline-small .timeline-item {
+    margin-bottom: 1rem;
+    padding-left: 3rem;
+}
+
+.timeline-small::before {
+    left: 20px;
+}
+
+.timeline-small .timeline-item::before {
+    left: 14px;
+    width: 12px;
+    height: 12px;
+    top: 4px;
+}
+
+/* Progress Bars */
+.progress {
+    height: 8px;
+    border-radius: 1rem;
+    background-color: #F1F5F9;
+}
+
+.progress-bar {
+    border-radius: 1rem;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}
+
+/* Modals */
+.modal-content {
+    border: none;
+    border-radius: 1rem;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+}
+
+.modal-header {
+    border-bottom: 1px solid #E2E8F0;
+    padding: 1.5rem;
+}
+
+.modal-body {
+    padding: 1.5rem;
+}
+
+.modal-footer {
+    border-top: 1px solid #E2E8F0;
+    padding: 1.5rem;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .login-form-container {
+        padding: 1rem;
+    }
+    
+    .stats-card h3 {
+        font-size: 2rem;
+    }
+    
+    .candidate-card {
+        margin-bottom: 1rem;
+    }
+    
+    .action-btn-group {
+        flex-direction: column;
+    }
+    
+    .action-btn {
+        min-width: auto;
+        margin-bottom: 0.5rem;
+    }
+    
+    .table {
+        font-size: 0.85rem;
+    }
+    
+    .timeline-item {
+        padding-left: 3rem;
+    }
+    
+    .timeline::before {
+        left: 20px;
+    }
+    
+    .timeline-item::before {
+        left: 14px;
+        width: 12px;
+        height: 12px;
+    }
+}
+
+@media (max-width: 576px) {
+    .container-fluid {
+        padding: 0.5rem;
+    }
+    
+    .card {
+        margin-bottom: 1rem;
+    }
+    
+    .navbar-brand {
+        font-size: 1rem;
+    }
+    
+    .btn-group {
+        flex-direction: column;
+    }
+    
+    .btn-group .btn {
+        margin-bottom: 0.25rem;
+        border-radius: 0.375rem !important;
+    }
+}
+
+/* Loading States */
+.loading-spinner {
+    display: inline-block;
+    width: 1rem;
+    height: 1rem;
+    border: 2px solid #E2E8F0;
+    border-radius: 50%;
+    border-top-color: #3B82F6;
+    animation: spin 1s ease-in-out infinite;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+.skeleton {
+    background: linear-gradient(90deg, #F1F5F9 25%, #E2E8F0 50%, #F1F5F9 75%);
+    background-size: 200% 100%;
+    animation: loading 1.5s infinite;
+}
+
+@keyframes loading {
+    0% { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
+}
+
+/* Accessibility */
+.sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+}
+
+/* Focus states */
+.btn:focus,
+.form-control:focus,
+.form-select:focus {
+    outline: 2px solid #3B82F6;
+    outline-offset: 2px;
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+    .card {
+        border: 1px solid #000;
+    }
+    
+    .btn {
+        border: 2px solid currentColor;
+    }
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+    }
+}
+
+/* Print styles */
+@media print {
+    .navbar,
+    .btn,
+    .modal,
+    .support-card {
+        display: none !important;
+    }
+    
+    .card {
+        box-shadow: none;
+        border: 1px solid #000;
+    }
+    
+    body {
+        background: white;
+        color: black;
+    }
+}

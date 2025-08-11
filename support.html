@@ -1,0 +1,575 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TPRC Client Portal - Support</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="css/tprc-brand.css" rel="stylesheet">
+    <link href="css/styles.css" rel="stylesheet">
+</head>
+<body class="support-page">
+    <!-- Navigation -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-tprc-primary">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="dashboard.html">
+                <svg width="40" height="20" viewBox="0 0 120 60" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <rect width="120" height="60" rx="8" fill="white"/>
+                    <text x="60" y="35" text-anchor="middle" fill="#2C5282" font-family="Arial, sans-serif" font-weight="bold" font-size="18">TPRC</text>
+                </svg>
+                <span class="ms-2">Client Portal</span>
+            </a>
+            
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav me-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="dashboard.html">
+                            <i class="fas fa-tachometer-alt me-1"></i>Dashboard
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="company-profile.html">
+                            <i class="fas fa-building me-1"></i>Company Profile
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="documents.html">
+                            <i class="fas fa-file-upload me-1"></i>Documents
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link active" href="support.html">
+                            <i class="fas fa-life-ring me-1"></i>Support
+                        </a>
+                    </li>
+                </ul>
+                
+                <ul class="navbar-nav">
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle d-flex align-items-center" href="#" role="button" data-bs-toggle="dropdown">
+                            <i class="fas fa-user-circle me-2"></i>
+                            <span id="user-name">Loading...</span>
+                        </a>
+                        <ul class="dropdown-menu">
+                            <li><a class="dropdown-item" href="company-profile.html" id="company-profile">
+                                <i class="fas fa-building me-2"></i>Company Profile
+                            </a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item" href="#" id="logout-btn">
+                                <i class="fas fa-sign-out-alt me-2"></i>Logout
+                            </a></li>
+                        </ul>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <div class="container-fluid mt-4">
+        <!-- Page Header -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="text-center">
+                    <h2>Support Center</h2>
+                    <p class="text-muted">Get help with your TPRC Client Portal experience</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Support Options -->
+        <div class="row mb-5">
+            <div class="col-lg-4 col-md-6 mb-4">
+                <div class="card h-100 support-card" onclick="showKnowledgeBase()">
+                    <div class="card-body text-center">
+                        <div class="support-icon mb-3">
+                            <i class="fas fa-book fa-3x text-primary"></i>
+                        </div>
+                        <h5 class="card-title">Knowledge Base</h5>
+                        <p class="card-text">Browse our comprehensive collection of articles, guides, and tutorials</p>
+                        <div class="mt-auto">
+                            <span class="btn btn-outline-primary">Browse Articles</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-lg-4 col-md-6 mb-4">
+                <div class="card h-100 support-card" onclick="showContactForm()">
+                    <div class="card-body text-center">
+                        <div class="support-icon mb-3">
+                            <i class="fas fa-ticket-alt fa-3x text-success"></i>
+                        </div>
+                        <h5 class="card-title">Submit a Ticket</h5>
+                        <p class="card-text">Can't find what you're looking for? Submit a support ticket and we'll help</p>
+                        <div class="mt-auto">
+                            <span class="btn btn-outline-success">Create Ticket</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-lg-4 col-md-6 mb-4">
+                <div class="card h-100 support-card">
+                    <div class="card-body text-center">
+                        <div class="support-icon mb-3">
+                            <i class="fas fa-phone fa-3x text-info"></i>
+                        </div>
+                        <h5 class="card-title">Contact Us</h5>
+                        <p class="card-text">Speak directly with our support team for urgent matters</p>
+                        <div class="mt-auto">
+                            <p class="mb-1"><strong>Phone:</strong> +61 2 9876 5432</p>
+                            <p class="mb-1"><strong>Email:</strong> support@tprc.com.au</p>
+                            <small class="text-muted">Mon-Fri, 9AM-5PM AEST</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Knowledge Base Section -->
+        <div id="knowledge-base-section" class="row" style="display: none;">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">
+                            <i class="fas fa-book me-2"></i>Knowledge Base
+                        </h5>
+                        <button class="btn btn-sm btn-outline-secondary" onclick="hideKnowledgeBase()">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                    <div class="card-body">
+                        <div class="row mb-4">
+                            <div class="col-md-8 mx-auto">
+                                <div class="input-group">
+                                    <span class="input-group-text"><i class="fas fa-search"></i></span>
+                                    <input type="text" class="form-control" placeholder="Search knowledge base..." id="kb-search">
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-6 mb-4">
+                                <h6 class="text-primary">Getting Started</h6>
+                                <div class="list-group list-group-flush">
+                                    <a href="#" class="list-group-item list-group-item-action" onclick="showArticle('login')">
+                                        <i class="fas fa-sign-in-alt me-2"></i>How to log in to the portal
+                                    </a>
+                                    <a href="#" class="list-group-item list-group-item-action" onclick="showArticle('dashboard')">
+                                        <i class="fas fa-tachometer-alt me-2"></i>Understanding your dashboard
+                                    </a>
+                                    <a href="#" class="list-group-item list-group-item-action" onclick="showArticle('navigation')">
+                                        <i class="fas fa-compass me-2"></i>Navigating the portal
+                                    </a>
+                                </div>
+                            </div>
+                            
+                            <div class="col-md-6 mb-4">
+                                <h6 class="text-success">Job Orders & Candidates</h6>
+                                <div class="list-group list-group-flush">
+                                    <a href="#" class="list-group-item list-group-item-action" onclick="showArticle('job-orders')">
+                                        <i class="fas fa-briefcase me-2"></i>Managing job orders
+                                    </a>
+                                    <a href="#" class="list-group-item list-group-item-action" onclick="showArticle('candidates')">
+                                        <i class="fas fa-users me-2"></i>Reviewing candidates
+                                    </a>
+                                    <a href="#" class="list-group-item list-group-item-action" onclick="showArticle('interviews')">
+                                        <i class="fas fa-calendar me-2"></i>Scheduling interviews
+                                    </a>
+                                </div>
+                            </div>
+                            
+                            <div class="col-md-6 mb-4">
+                                <h6 class="text-warning">Document Management</h6>
+                                <div class="list-group list-group-flush">
+                                    <a href="#" class="list-group-item list-group-item-action" onclick="showArticle('upload')">
+                                        <i class="fas fa-upload me-2"></i>Uploading documents
+                                    </a>
+                                    <a href="#" class="list-group-item list-group-item-action" onclick="showArticle('sponsorship')">
+                                        <i class="fas fa-handshake me-2"></i>Sponsorship requirements
+                                    </a>
+                                    <a href="#" class="list-group-item list-group-item-action" onclick="showArticle('nomination')">
+                                        <i class="fas fa-user-plus me-2"></i>Nomination process
+                                    </a>
+                                </div>
+                            </div>
+                            
+                            <div class="col-md-6 mb-4">
+                                <h6 class="text-info">Account & Settings</h6>
+                                <div class="list-group list-group-flush">
+                                    <a href="#" class="list-group-item list-group-item-action" onclick="showArticle('profile')">
+                                        <i class="fas fa-user me-2"></i>Managing your profile
+                                    </a>
+                                    <a href="#" class="list-group-item list-group-item-action" onclick="showArticle('notifications')">
+                                        <i class="fas fa-bell me-2"></i>Notification settings
+                                    </a>
+                                    <a href="#" class="list-group-item list-group-item-action" onclick="showArticle('security')">
+                                        <i class="fas fa-shield-alt me-2"></i>Security & privacy
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Article View -->
+        <div id="article-view" class="row" style="display: none;">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0" id="article-title">Article Title</h5>
+                        <button class="btn btn-sm btn-outline-secondary" onclick="hideArticle()">
+                            <i class="fas fa-arrow-left me-1"></i>Back to Knowledge Base
+                        </button>
+                    </div>
+                    <div class="card-body">
+                        <div id="article-content">
+                            <!-- Article content will be loaded here -->
+                        </div>
+                        
+                        <hr>
+                        
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <small class="text-muted">Was this article helpful?</small>
+                                <div class="mt-2">
+                                    <button class="btn btn-sm btn-outline-success me-2" onclick="rateArticle('helpful')">
+                                        <i class="fas fa-thumbs-up me-1"></i>Yes
+                                    </button>
+                                    <button class="btn btn-sm btn-outline-danger" onclick="rateArticle('not-helpful')">
+                                        <i class="fas fa-thumbs-down me-1"></i>No
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="text-end">
+                                <small class="text-muted">Last updated: <span id="article-date">-</span></small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Contact Form Section -->
+        <div id="contact-form-section" class="row" style="display: none;">
+            <div class="col-lg-8 mx-auto">
+                <div class="card">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">
+                            <i class="fas fa-ticket-alt me-2"></i>Submit Support Ticket
+                        </h5>
+                        <button class="btn btn-sm btn-outline-secondary" onclick="hideContactForm()">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                    <div class="card-body">
+                        <form id="support-ticket-form">
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label for="ticket-priority" class="form-label">Priority *</label>
+                                    <select class="form-select" id="ticket-priority" name="priority" required>
+                                        <option value="">Select priority</option>
+                                        <option value="low">Low - General inquiry</option>
+                                        <option value="medium">Medium - Feature request</option>
+                                        <option value="high">High - Technical issue</option>
+                                        <option value="urgent">Urgent - System down</option>
+                                    </select>
+                                </div>
+                                
+                                <div class="col-md-6 mb-3">
+                                    <label for="ticket-category" class="form-label">Category *</label>
+                                    <select class="form-select" id="ticket-category" name="category" required>
+                                        <option value="">Select category</option>
+                                        <option value="account">Account & Login</option>
+                                        <option value="job-orders">Job Orders</option>
+                                        <option value="candidates">Candidate Management</option>
+                                        <option value="documents">Document Upload</option>
+                                        <option value="technical">Technical Issue</option>
+                                        <option value="other">Other</option>
+                                    </select>
+                                </div>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="ticket-subject" class="form-label">Subject *</label>
+                                <input type="text" class="form-control" id="ticket-subject" name="subject" required placeholder="Brief description of your issue">
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="ticket-description" class="form-label">Description *</label>
+                                <textarea class="form-control" id="ticket-description" name="description" rows="6" required placeholder="Please provide detailed information about your issue or question"></textarea>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="ticket-attachments" class="form-label">Attachments</label>
+                                <input type="file" class="form-control" id="ticket-attachments" name="attachments" multiple accept=".pdf,.doc,.docx,.jpg,.jpeg,.png,.txt">
+                                <div class="form-text">You can attach screenshots or relevant documents (max 5MB per file)</div>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="email-updates" name="emailUpdates" checked>
+                                    <label class="form-check-label" for="email-updates">
+                                        Send me email updates about this ticket
+                                    </label>
+                                </div>
+                            </div>
+                            
+                            <div class="d-flex justify-content-between">
+                                <button type="button" class="btn btn-secondary" onclick="hideContactForm()">Cancel</button>
+                                <button type="submit" class="btn btn-tprc-primary">
+                                    <i class="fas fa-paper-plane me-2"></i>Submit Ticket
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- FAQ Section -->
+        <div class="row mt-5">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="mb-0">
+                            <i class="fas fa-question-circle me-2"></i>Frequently Asked Questions
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="accordion" id="faqAccordion">
+                            <div class="accordion-item">
+                                <h2 class="accordion-header" id="faq1">
+                                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#faqAnswer1">
+                                        How do I reset my password?
+                                    </button>
+                                </h2>
+                                <div id="faqAnswer1" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+                                    <div class="accordion-body">
+                                        To reset your password, click on the "Forgot password?" link on the login page. Enter your email address and follow the instructions sent to your email.
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="accordion-item">
+                                <h2 class="accordion-header" id="faq2">
+                                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#faqAnswer2">
+                                        Why can't I see any job orders?
+                                    </button>
+                                </h2>
+                                <div id="faqAnswer2" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+                                    <div class="accordion-body">
+                                        Job orders are associated with your company account. If you don't see any job orders, please contact your TPRC representative to ensure your account is properly configured.
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="accordion-item">
+                                <h2 class="accordion-header" id="faq3">
+                                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#faqAnswer3">
+                                        What file formats are supported for document uploads?
+                                    </button>
+                                </h2>
+                                <div id="faqAnswer3" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+                                    <div class="accordion-body">
+                                        We support PDF, DOC, DOCX, JPG, JPEG, and PNG files. The maximum file size is 10MB per file. For best results, we recommend uploading documents in PDF format.
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="accordion-item">
+                                <h2 class="accordion-header" id="faq4">
+                                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#faqAnswer4">
+                                        How do I schedule an interview with a candidate?
+                                    </button>
+                                </h2>
+                                <div id="faqAnswer4" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+                                    <div class="accordion-body">
+                                        To schedule an interview, go to the job order details page, find the candidate you want to interview, and click the "Schedule Interview" button. Select the interview type and preferred date/time.
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="js/auth.js"></script>
+    <script src="js/hubspot-api.js"></script>
+    <script src="js/app.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Check authentication
+            if (!isAuthenticated()) {
+                window.location.href = 'index.html';
+                return;
+            }
+            
+            // Setup event listeners
+            setupEventListeners();
+        });
+
+        function setupEventListeners() {
+            // Logout
+            document.getElementById('logout-btn').addEventListener('click', logout);
+            
+            // Support ticket form
+            document.getElementById('support-ticket-form').addEventListener('submit', submitSupportTicket);
+            
+            // Knowledge base search
+            document.getElementById('kb-search').addEventListener('input', searchKnowledgeBase);
+        }
+
+        function showKnowledgeBase() {
+            document.getElementById('knowledge-base-section').style.display = 'block';
+            document.getElementById('contact-form-section').style.display = 'none';
+            document.getElementById('article-view').style.display = 'none';
+        }
+
+        function hideKnowledgeBase() {
+            document.getElementById('knowledge-base-section').style.display = 'none';
+        }
+
+        function showContactForm() {
+            document.getElementById('contact-form-section').style.display = 'block';
+            document.getElementById('knowledge-base-section').style.display = 'none';
+            document.getElementById('article-view').style.display = 'none';
+        }
+
+        function hideContactForm() {
+            document.getElementById('contact-form-section').style.display = 'none';
+        }
+
+        function showArticle(articleId) {
+            const articles = {
+                'login': {
+                    title: 'How to log in to the portal',
+                    content: `
+                        <h6>Logging in to your TPRC Client Portal</h6>
+                        <p>To access your TPRC Client Portal account:</p>
+                        <ol>
+                            <li>Navigate to the portal login page</li>
+                            <li>Enter your registered email address</li>
+                            <li>Enter your password</li>
+                            <li>Click "Sign In"</li>
+                        </ol>
+                        <p><strong>Note:</strong> Your login credentials are linked to your HubSpot Membership account. If you haven't received your login details, please contact your TPRC representative.</p>
+                        <h6>Troubleshooting Login Issues</h6>
+                        <ul>
+                            <li>Ensure you're using the correct email address associated with your company</li>
+                            <li>Check that Caps Lock is not enabled when entering your password</li>
+                            <li>If you've forgotten your password, use the "Forgot password?" link</li>
+                        </ul>
+                    `,
+                    date: '2024-01-15'
+                },
+                'dashboard': {
+                    title: 'Understanding your dashboard',
+                    content: `
+                        <h6>Dashboard Overview</h6>
+                        <p>Your dashboard provides a comprehensive view of your recruitment activities:</p>
+                        <ul>
+                            <li><strong>Active Job Orders:</strong> Number of job orders currently being processed</li>
+                            <li><strong>Available Candidates:</strong> Total candidates available for review</li>
+                            <li><strong>Pending Reviews:</strong> Candidates awaiting your decision</li>
+                            <li><strong>Selections Made:</strong> Number of candidates you've approved</li>
+                        </ul>
+                        <h6>Job Orders Table</h6>
+                        <p>The main table shows all your job orders with key information:</p>
+                        <ul>
+                            <li>Job title and position type</li>
+                            <li>Location and candidate count</li>
+                            <li>Current status and creation date</li>
+                            <li>Quick action buttons</li>
+                        </ul>
+                    `,
+                    date: '2024-01-20'
+                }
+                // Add more articles as needed
+            };
+
+            const article = articles[articleId];
+            if (article) {
+                document.getElementById('article-title').textContent = article.title;
+                document.getElementById('article-content').innerHTML = article.content;
+                document.getElementById('article-date').textContent = article.date;
+                
+                document.getElementById('knowledge-base-section').style.display = 'none';
+                document.getElementById('article-view').style.display = 'block';
+            }
+        }
+
+        function hideArticle() {
+            document.getElementById('article-view').style.display = 'none';
+            document.getElementById('knowledge-base-section').style.display = 'block';
+        }
+
+        function submitSupportTicket(e) {
+            e.preventDefault();
+            
+            const formData = new FormData(e.target);
+            const ticketData = Object.fromEntries(formData.entries());
+            
+            // Submit ticket to HubSpot
+            submitTicketToHubSpot(ticketData)
+                .then(response => {
+                    showAlert('success', 'Support ticket submitted successfully! We will respond within 24 hours.');
+                    e.target.reset();
+                    hideContactForm();
+                })
+                .catch(error => {
+                    console.error('Error submitting ticket:', error);
+                    showAlert('danger', 'Failed to submit support ticket. Please try again or contact us directly.');
+                });
+        }
+
+        function searchKnowledgeBase() {
+            const searchTerm = document.getElementById('kb-search').value.toLowerCase();
+            const articles = document.querySelectorAll('#knowledge-base-section .list-group-item');
+            
+            articles.forEach(article => {
+                const text = article.textContent.toLowerCase();
+                if (text.includes(searchTerm)) {
+                    article.style.display = 'block';
+                } else {
+                    article.style.display = searchTerm ? 'none' : 'block';
+                }
+            });
+        }
+
+        function rateArticle(rating) {
+            // Submit article rating
+            console.log('Article rated:', rating);
+            showAlert('success', 'Thank you for your feedback!');
+        }
+
+        function showAlert(type, message) {
+            const alertDiv = document.createElement('div');
+            alertDiv.className = `alert alert-${type} alert-dismissible fade show`;
+            alertDiv.innerHTML = `
+                ${message}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            `;
+            
+            document.querySelector('.container-fluid').insertBefore(alertDiv, document.querySelector('.container-fluid').firstChild);
+            
+            setTimeout(() => {
+                if (alertDiv.parentNode) {
+                    alertDiv.remove();
+                }
+            }, 5000);
+        }
+    </script>
+</body>
+</html>
