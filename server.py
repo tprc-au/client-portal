@@ -865,6 +865,277 @@ class HubSpotClient:
         except Exception as e:
             logger.error(f"Error creating activity record: {e}")
 
+    def get_candidate_assessment(self, candidate_id: str) -> Dict:
+        """Get candidate assessment/scorecard"""
+        try:
+            # Search for assessment records associated with this candidate
+            search_data = {
+                "filterGroups": [
+                    {
+                        "filters": [
+                            {
+                                "propertyName": "candidate_id",
+                                "operator": "EQ",
+                                "value": candidate_id
+                            }
+                        ]
+                    }
+                ],
+                "properties": ["technical_skills", "experience", "english_proficiency", "cultural_fit", 
+                              "problem_solving", "teamwork", "overall_rating", "final_decision", 
+                              "assessment_notes", "concerns", "assessed_by", "assessment_date"],
+                "limit": 1
+            }
+            
+            response = self.make_request('POST', '/crm/v3/objects/assessments/search', data=search_data)
+            if response.get('results') and len(response['results']) > 0:
+                assessment = response['results'][0]
+                return assessment.get('properties', {})
+            return {}
+        except Exception as e:
+            logger.error(f"Error getting candidate assessment: {e}")
+            return {}
+
+    def save_candidate_assessment(self, scorecard_data: Dict) -> Dict:
+        """Save candidate assessment/scorecard"""
+        try:
+            assessment_record = {
+                'properties': {
+                    'candidate_id': scorecard_data['candidate_id'],
+                    'company_id': scorecard_data['company_id'],
+                    'assessed_by': scorecard_data['assessed_by'],
+                    'technical_skills': scorecard_data.get('technical_skills'),
+                    'experience': scorecard_data.get('experience'),
+                    'english_proficiency': scorecard_data.get('english_proficiency'),
+                    'cultural_fit': scorecard_data.get('cultural_fit'),
+                    'problem_solving': scorecard_data.get('problem_solving'),
+                    'teamwork': scorecard_data.get('teamwork'),
+                    'overall_rating': scorecard_data.get('overall_rating'),
+                    'final_decision': scorecard_data.get('final_decision'),
+                    'assessment_notes': scorecard_data.get('assessment_notes', ''),
+                    'concerns': scorecard_data.get('concerns', ''),
+                    'assessment_date': datetime.utcnow().isoformat()
+                }
+            }
+            
+            return self.make_request('POST', '/crm/v3/objects/assessments', data=assessment_record)
+        except Exception as e:
+            logger.error(f"Error saving candidate assessment: {e}")
+            raise
+
+    def reserve_candidate(self, candidate_id: str, reason: str, interview_date: str = None) -> Dict:
+        """Reserve candidate for interview"""
+        try:
+            # Update candidate status
+            candidate_update = {
+                'properties': {
+                    'lifecycle_stage': 'reserved',
+                    'reservation_reason': reason,
+                    'interview_scheduled_date': interview_date,
+                    'last_action_date': datetime.utcnow().isoformat()
+                }
+            }
+            
+            self.make_request('PATCH', f'/crm/v3/objects/candidates/{candidate_id}', data=candidate_update)
+            
+            # Create activity record
+            activity_data = {
+                'type': 'candidate_reserved',
+                'description': f'Candidate reserved for interview: {reason}',
+                'candidate_id': candidate_id,
+                'notes': f'Interview scheduled for: {interview_date}' if interview_date else 'Interview to be scheduled'
+            }
+            self.create_activity_record(activity_data)
+            
+            return {'success': True, 'message': 'Candidate reserved successfully'}
+        except Exception as e:
+            logger.error(f"Error reserving candidate: {e}")
+            raise
+
+    def get_post_selection_pipeline(self, company_id: str) -> Dict:
+        """Get post-selection pipeline data for company"""
+        try:
+            # Get all selected candidates for the company
+            search_data = {
+                "filterGroups": [
+                    {
+                        "filters": [
+                            {
+                                "propertyName": "company_id",
+                                "operator": "EQ", 
+                                "value": company_id
+                            },
+                            {
+                                "propertyName": "lifecycle_stage",
+                                "operator": "IN",
+                                "values": ["selected", "letter_of_offer", "visa_processing", "medical_examination", 
+                                          "coe_approval", "deployment_prep", "deployed"]
+                            }
+                        ]
+                    }
+                ],
+                "properties": ["firstname", "lastname", "lifecycle_stage", "pipeline_stage", "position_title"],
+                "limit": 100
+            }
+            
+            response = self.make_request('POST', '/crm/v3/objects/candidates/search', data=search_data)
+            candidates = response.get('results', [])
+            
+            # Calculate statistics
+            stats = {
+                'selected': 0,
+                'visa_processing': 0,
+                'deployment_ready': 0,
+                'deployed': 0
+            }
+            
+            processed_candidates = []
+            for candidate in candidates:
+                props = candidate.get('properties', {})
+                stage = props.get('pipeline_stage', props.get('lifecycle_stage', 'unknown'))
+                
+                if stage in ['selected', 'letter_of_offer']:
+                    stats['selected'] += 1
+                elif stage in ['visa_processing', 'medical_examination']:
+                    stats['visa_processing'] += 1
+                elif stage in ['coe_approval', 'deployment_prep']:
+                    stats['deployment_ready'] += 1
+                elif stage == 'deployed':
+                    stats['deployed'] += 1
+                
+                processed_candidates.append({
+                    'id': candidate['id'],
+                    'name': f"{props.get('firstname', '')} {props.get('lastname', '')}".strip(),
+                    'position': props.get('position_title', 'Unknown Position'),
+                    'pipeline_stage': stage.replace('_', ' ').title(),
+                    'last_updated': props.get('lastmodifieddate', '')
+                })
+            
+            return {
+                'stats': stats,
+                'candidates': processed_candidates,
+                'total_count': len(candidates)
+            }
+        except Exception as e:
+            logger.error(f"Error getting post-selection pipeline: {e}")
+            return {'stats': {}, 'candidates': [], 'total_count': 0}
+
+    def get_candidate_pipeline_details(self, candidate_id: str) -> Dict:
+        """Get detailed pipeline information for specific candidate"""
+        try:
+            candidate = self.make_request('GET', f'/crm/v3/objects/candidates/{candidate_id}')
+            props = candidate.get('properties', {})
+            
+            # Get pipeline checklist based on current stage
+            stage = props.get('pipeline_stage', 'selected')
+            
+            pipeline_steps = [
+                {'step': 'Letter of Offer', 'status': 'completed' if stage not in ['selected'] else 'pending'},
+                {'step': 'Visa Processing', 'status': 'completed' if stage not in ['selected', 'letter_of_offer'] else 'pending'},
+                {'step': 'Medical Examination', 'status': 'completed' if stage not in ['selected', 'letter_of_offer', 'visa_processing'] else 'pending'},
+                {'step': 'COE Approval', 'status': 'completed' if stage not in ['selected', 'letter_of_offer', 'visa_processing', 'medical_examination'] else 'pending'},
+                {'step': 'Deployment Prep', 'status': 'completed' if stage == 'deployed' else 'pending'},
+                {'step': 'Deployed', 'status': 'completed' if stage == 'deployed' else 'pending'}
+            ]
+            
+            return {
+                'candidate': {
+                    'name': f"{props.get('firstname', '')} {props.get('lastname', '')}".strip(),
+                    'position': props.get('position_title', ''),
+                    'current_stage': stage.replace('_', ' ').title()
+                },
+                'pipeline_steps': pipeline_steps,
+                'timeline': [] # Could be populated with specific dates/activities
+            }
+        except Exception as e:
+            logger.error(f"Error getting candidate pipeline details: {e}")
+            return {}
+
+    def get_company_provisions(self, company_id: str, category: str = None) -> Dict:
+        """Get company provision documents"""
+        try:
+            filters = [
+                {
+                    "propertyName": "company_id",
+                    "operator": "EQ",
+                    "value": company_id
+                }
+            ]
+            
+            if category:
+                filters.append({
+                    "propertyName": "category",
+                    "operator": "EQ", 
+                    "value": category
+                })
+            
+            search_data = {
+                "filterGroups": [{"filters": filters}],
+                "properties": ["filename", "category", "upload_date", "file_size", "status"],
+                "limit": 100
+            }
+            
+            response = self.make_request('POST', '/crm/v3/objects/provisions/search', data=search_data)
+            return response.get('results', [])
+        except Exception as e:
+            logger.error(f"Error getting company provisions: {e}")
+            return []
+
+    def count_provision_documents(self, company_id: str, category: str) -> int:
+        """Count existing provision documents for category"""
+        try:
+            provisions = self.get_company_provisions(company_id, category)
+            return len(provisions)
+        except Exception as e:
+            logger.error(f"Error counting provision documents: {e}")
+            return 0
+
+    def create_provision_record(self, file_data: Dict) -> Dict:
+        """Create provision record in HubSpot"""
+        try:
+            provision_record = {
+                'properties': {
+                    'filename': file_data['filename'],
+                    'file_path': file_data['file_path'],
+                    'company_id': file_data['company_id'],
+                    'category': file_data['category'],
+                    'uploaded_by': file_data['uploaded_by'],
+                    'file_size': str(file_data['file_size']),
+                    'mime_type': file_data['mime_type'],
+                    'upload_date': datetime.utcnow().isoformat(),
+                    'status': 'uploaded'
+                }
+            }
+            
+            return self.make_request('POST', '/crm/v3/objects/provisions', data=provision_record)
+        except Exception as e:
+            logger.error(f"Error creating provision record: {e}")
+            raise
+
+    def save_provision_questions(self, questions_data: Dict) -> Dict:
+        """Save provision questionnaire answers"""
+        try:
+            # Update company record with questionnaire answers
+            company_update = {
+                'properties': {
+                    'business_size': questions_data.get('business_size', ''),
+                    'annual_turnover': questions_data.get('annual_turnover', ''),
+                    'years_in_business': questions_data.get('years_in_business', ''),
+                    'industry_sector': questions_data.get('industry_sector', ''),
+                    'previous_sponsorship': questions_data.get('previous_sponsorship', ''),
+                    'additional_comments': questions_data.get('additional_comments', ''),
+                    'questionnaire_completed_date': datetime.utcnow().isoformat()
+                }
+            }
+            
+            self.make_request('PATCH', f'/crm/v3/objects/companies/{questions_data["company_id"]}', 
+                             data=company_update)
+            
+            return {'success': True, 'message': 'Questionnaire answers saved successfully'}
+        except Exception as e:
+            logger.error(f"Error saving provision questions: {e}")
+            raise
+
 # Initialize HubSpot client
 hubspot_client = HubSpotClient(HUBSPOT_API_KEY)
 
@@ -1334,16 +1605,7 @@ def get_candidate(candidate_id):
         logger.error(f"Error getting candidate: {e}")
         return jsonify({'error': 'Failed to get candidate'}), 500
 
-@app.route('/api/hubspot/candidates/action', methods=['POST'])
-@require_auth
-def submit_candidate_action():
-    try:
-        action_data = request.get_json()
-        result = hubspot_client.submit_candidate_action(action_data)
-        return jsonify(result)
-    except Exception as e:
-        logger.error(f"Error submitting candidate action: {e}")
-        return jsonify({'error': 'Failed to submit candidate action'}), 500
+# Candidate actions moved to parameterized route: /api/hubspot/candidates/<candidate_id>/actions
 
 # Dashboard endpoints
 @app.route('/api/hubspot/dashboard/stats', methods=['GET'])
@@ -1459,6 +1721,163 @@ def save_additional_info():
     except Exception as e:
         logger.error(f"Error saving additional info: {e}")
         return jsonify({'error': 'Failed to save additional information'}), 500
+
+# Client Assessment/Scorecard endpoints
+@app.route('/api/hubspot/candidates/<candidate_id>/scorecard', methods=['GET'])
+@require_auth
+def get_candidate_scorecard(candidate_id):
+    try:
+        # Get existing scorecard/assessment for candidate
+        scorecard = hubspot_client.get_candidate_assessment(candidate_id)
+        return jsonify(scorecard or {})
+    except Exception as e:
+        logger.error(f"Error getting candidate scorecard: {e}")
+        return jsonify({'error': 'Failed to get candidate scorecard'}), 500
+
+@app.route('/api/hubspot/candidates/<candidate_id>/scorecard', methods=['POST'])
+@require_auth
+def save_candidate_scorecard(candidate_id):
+    try:
+        scorecard_data = request.get_json()
+        scorecard_data['candidate_id'] = candidate_id
+        scorecard_data['company_id'] = request.company_id
+        scorecard_data['assessed_by'] = request.user_id
+        
+        result = hubspot_client.save_candidate_assessment(scorecard_data)
+        
+        # If decision is approve/reject, trigger workflow
+        if scorecard_data.get('final_decision') == 'approve':
+            hubspot_client.approve_candidate(candidate_id, 'Client Assessment Approved')
+        elif scorecard_data.get('final_decision') == 'reject':
+            hubspot_client.reject_candidate(candidate_id, 'Client Assessment Rejected')
+        
+        return jsonify(result)
+    except Exception as e:
+        logger.error(f"Error saving candidate scorecard: {e}")
+        return jsonify({'error': 'Failed to save candidate scorecard'}), 500
+
+@app.route('/api/hubspot/candidates/<candidate_id>/actions', methods=['POST'])
+@require_auth
+def submit_candidate_action(candidate_id):
+    try:
+        action_data = request.get_json()
+        action_data['candidate_id'] = candidate_id
+        action_data['company_id'] = request.company_id
+        action_data['submitted_by'] = request.user_id
+        
+        # Process different types of actions
+        action_type = action_data.get('actionType')
+        
+        if action_type == 'approve':
+            result = hubspot_client.approve_candidate(candidate_id, action_data.get('reason'), action_data.get('notes'))
+        elif action_type == 'reject':
+            result = hubspot_client.reject_candidate(candidate_id, action_data.get('reason'), action_data.get('notes'))
+        elif action_type == 'reserve':
+            result = hubspot_client.reserve_candidate(candidate_id, action_data.get('reason'), action_data.get('interviewDate'))
+        else:
+            return jsonify({'error': 'Invalid action type'}), 400
+        
+        return jsonify(result)
+    except Exception as e:
+        logger.error(f"Error submitting candidate action: {e}")
+        return jsonify({'error': 'Failed to submit candidate action'}), 500
+
+# Post-Selection Pipeline endpoints
+@app.route('/api/hubspot/post-selection/pipeline', methods=['GET'])
+@require_auth
+def get_post_selection_pipeline():
+    try:
+        pipeline_data = hubspot_client.get_post_selection_pipeline(request.company_id)
+        return jsonify(pipeline_data)
+    except Exception as e:
+        logger.error(f"Error getting post-selection pipeline: {e}")
+        return jsonify({'error': 'Failed to get pipeline data'}), 500
+
+@app.route('/api/hubspot/candidates/<candidate_id>/pipeline', methods=['GET'])
+@require_auth
+def get_candidate_pipeline_details(candidate_id):
+    try:
+        pipeline_details = hubspot_client.get_candidate_pipeline_details(candidate_id)
+        return jsonify(pipeline_details)
+    except Exception as e:
+        logger.error(f"Error getting candidate pipeline details: {e}")
+        return jsonify({'error': 'Failed to get pipeline details'}), 500
+
+# Enhanced document/provision endpoints
+@app.route('/api/hubspot/provisions', methods=['GET'])
+@require_auth
+def get_company_provisions():
+    try:
+        category = request.args.get('category')
+        provisions = hubspot_client.get_company_provisions(request.company_id, category)
+        return jsonify(provisions)
+    except Exception as e:
+        logger.error(f"Error getting provisions: {e}")
+        return jsonify({'error': 'Failed to get provisions'}), 500
+
+@app.route('/api/hubspot/provisions/upload', methods=['POST'])
+@require_auth
+def upload_provision_documents():
+    try:
+        if 'files' not in request.files:
+            return jsonify({'error': 'No files provided'}), 400
+        
+        files = request.files.getlist('files')
+        category = request.form.get('category', 'general')
+        
+        # Check file limit (5 files max per category)
+        existing_count = hubspot_client.count_provision_documents(request.company_id, category)
+        if existing_count + len(files) > 5:
+            return jsonify({'error': f'Maximum 5 documents allowed per category. Current: {existing_count}'}), 400
+        
+        uploaded_files = []
+        for file in files:
+            if file.filename == '':
+                continue
+            
+            # Save file securely
+            filename = secure_filename(file.filename)
+            timestamp = datetime.utcnow().strftime('%Y%m%d_%H%M%S')
+            safe_filename = f"{timestamp}_{filename}"
+            file_path = os.path.join(app.config['UPLOAD_FOLDER'], safe_filename)
+            file.save(file_path)
+            
+            # Create provision record in HubSpot
+            file_data = {
+                'filename': filename,
+                'file_path': file_path,
+                'company_id': request.company_id,
+                'category': category,
+                'uploaded_by': request.user_id,
+                'file_size': os.path.getsize(file_path),
+                'mime_type': file.content_type
+            }
+            
+            result = hubspot_client.create_provision_record(file_data)
+            uploaded_files.append(result)
+        
+        return jsonify({
+            'success': True,
+            'uploaded_files': uploaded_files,
+            'message': f'{len(uploaded_files)} file(s) uploaded successfully'
+        })
+        
+    except Exception as e:
+        logger.error(f"Error uploading provision documents: {e}")
+        return jsonify({'error': 'Failed to upload documents'}), 500
+
+@app.route('/api/hubspot/provisions/questions', methods=['POST'])
+@require_auth
+def save_provision_questions():
+    try:
+        questions_data = request.get_json()
+        questions_data['company_id'] = request.company_id
+        
+        result = hubspot_client.save_provision_questions(questions_data)
+        return jsonify(result)
+    except Exception as e:
+        logger.error(f"Error saving provision questions: {e}")
+        return jsonify({'error': 'Failed to save questions'}), 500
 
 # Support endpoints
 @app.route('/api/hubspot/support/tickets', methods=['POST'])

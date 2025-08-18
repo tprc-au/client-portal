@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TPRC Client Portal - Post-Selection Pipeline</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="css/tprc-brand.css" rel="stylesheet">
+    <link href="css/styles.css" rel="stylesheet">
+</head>
+<body class="post-selection-page">
+    <!-- Navigation -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-tprc-primary">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="dashboard.html">
+                <svg width="40" height="20" viewBox="0 0 120 60" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <rect width="120" height="60" rx="8" fill="white"/>
+                    <text x="60" y="35" text-anchor="middle" fill="#2C5282" font-family="Arial, sans-serif" font-weight="bold" font-size="18">TPRC</text>
+                </svg>
+                <span class="ms-2">Client Portal</span>
+            </a>
+            
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav me-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="dashboard.html">
+                            <i class="fas fa-tachometer-alt me-1"></i>Dashboard
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="company-profile.html">
+                            <i class="fas fa-building me-1"></i>Company Profile
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="documents.html">
+                            <i class="fas fa-file-upload me-1"></i>Documents
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="support.html">
+                            <i class="fas fa-life-ring me-1"></i>Support
+                        </a>
+                    </li>
+                </ul>
+                
+                <ul class="navbar-nav">
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle d-flex align-items-center" href="#" role="button" data-bs-toggle="dropdown">
+                            <i class="fas fa-user-circle me-2"></i>
+                            <span id="user-name">Loading...</span>
+                        </a>
+                        <ul class="dropdown-menu">
+                            <li><a class="dropdown-item" href="company-profile.html">
+                                <i class="fas fa-building me-2"></i>Company Profile
+                            </a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item" href="#" id="logout-btn">
+                                <i class="fas fa-sign-out-alt me-2"></i>Logout
+                            </a></li>
+                        </ul>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Breadcrumb -->
+    <div class="container-fluid mt-3">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="dashboard.html">Dashboard</a></li>
+                <li class="breadcrumb-item active">Post-Selection Pipeline</li>
+            </ol>
+        </nav>
+    </div>
+
+    <!-- Main Content -->
+    <div class="container-fluid">
+        <!-- Page Header -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-body">
+                        <div class="row align-items-center">
+                            <div class="col-md-8">
+                                <h2 class="mb-2">Post-Selection Pipeline</h2>
+                                <p class="mb-0 text-muted">Track your selected candidates through the deployment process</p>
+                            </div>
+                            <div class="col-md-4 text-end">
+                                <div class="d-flex gap-2">
+                                    <button class="btn btn-outline-primary btn-sm" onclick="refreshPipeline()">
+                                        <i class="fas fa-sync-alt me-1"></i>Refresh
+                                    </button>
+                                    <button class="btn btn-tprc-primary btn-sm" onclick="exportPipelineReport()">
+                                        <i class="fas fa-download me-1"></i>Export Report
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Pipeline Overview -->
+        <div class="row mb-4">
+            <div class="col-md-3">
+                <div class="card bg-info text-white">
+                    <div class="card-body text-center">
+                        <i class="fas fa-clipboard-check fa-2x mb-2"></i>
+                        <h3 id="selected-count">0</h3>
+                        <h6>Selected Candidates</h6>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card bg-warning text-white">
+                    <div class="card-body text-center">
+                        <i class="fas fa-file-medical fa-2x mb-2"></i>
+                        <h3 id="visa-processing-count">0</h3>
+                        <h6>Visa Processing</h6>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card bg-success text-white">
+                    <div class="card-body text-center">
+                        <i class="fas fa-plane fa-2x mb-2"></i>
+                        <h3 id="deployment-ready-count">0</h3>
+                        <h6>Deployment Ready</h6>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card bg-primary text-white">
+                    <div class="card-body text-center">
+                        <i class="fas fa-briefcase fa-2x mb-2"></i>
+                        <h3 id="deployed-count">0</h3>
+                        <h6>Successfully Deployed</h6>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Selected Candidates Pipeline -->
+        <div class="row">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="mb-0">
+                            <i class="fas fa-route me-2"></i>Deployment Pipeline
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div id="pipeline-content">
+                            <div class="text-center py-4">
+                                <div class="spinner-border text-primary" role="status">
+                                    <span class="visually-hidden">Loading...</span>
+                                </div>
+                                <p class="mt-2 mb-0">Loading pipeline data...</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Pipeline Detail Modal -->
+    <div class="modal fade" id="pipelineDetailModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Pipeline Progress Details</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div id="pipeline-detail-content">
+                        <!-- Content loaded dynamically -->
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="js/auth.js"></script>
+    <script src="js/hubspot-api.js"></script>
+    <script src="js/app.js"></script>
+    <script>
+        // Initialize page when DOM is loaded
+        document.addEventListener('DOMContentLoaded', function() {
+            if (!isAuthenticated()) {
+                window.location.href = 'index.html';
+                return;
+            }
+            
+            // Initialize the page
+            initializePostSelectionPage();
+        });
+
+        async function initializePostSelectionPage() {
+            try {
+                // Load user profile for navigation
+                await loadUserProfile();
+                
+                // Load pipeline data
+                await loadPipelineData();
+                
+            } catch (error) {
+                console.error('Error initializing post-selection page:', error);
+                showErrorMessage('Failed to load pipeline data');
+            }
+        }
+
+        async function loadPipelineData() {
+            try {
+                // Fetch selected candidates and their pipeline status
+                const response = await hubspotAPI.request('/api/hubspot/post-selection/pipeline');
+                const pipelineData = response;
+
+                // Update overview counts
+                updatePipelineCounts(pipelineData);
+                
+                // Render pipeline view
+                renderPipelineView(pipelineData.candidates || []);
+                
+            } catch (error) {
+                console.error('Error loading pipeline data:', error);
+                document.getElementById('pipeline-content').innerHTML = 
+                    '<div class="alert alert-danger">Failed to load pipeline data</div>';
+            }
+        }
+
+        function updatePipelineCounts(data) {
+            document.getElementById('selected-count').textContent = data.stats?.selected || 0;
+            document.getElementById('visa-processing-count').textContent = data.stats?.visa_processing || 0;
+            document.getElementById('deployment-ready-count').textContent = data.stats?.deployment_ready || 0;
+            document.getElementById('deployed-count').textContent = data.stats?.deployed || 0;
+        }
+
+        function renderPipelineView(candidates) {
+            const content = document.getElementById('pipeline-content');
+            
+            if (!candidates || candidates.length === 0) {
+                content.innerHTML = `
+                    <div class="text-center py-5">
+                        <i class="fas fa-users fa-3x text-muted mb-3"></i>
+                        <h5>No candidates in pipeline</h5>
+                        <p class="text-muted">Selected candidates will appear here once they enter the deployment process.</p>
+                    </div>
+                `;
+                return;
+            }
+
+            content.innerHTML = candidates.map(candidate => createCandidateCard(candidate)).join('');
+        }
+
+        function createCandidateCard(candidate) {
+            const progressPercentage = calculateProgress(candidate.pipeline_stage);
+            const stageClass = getStageClass(candidate.pipeline_stage);
+            
+            return `
+                <div class="card mb-3">
+                    <div class="card-body">
+                        <div class="row align-items-center">
+                            <div class="col-md-3">
+                                <div class="d-flex align-items-center">
+                                    <div class="me-3">
+                                        <i class="fas fa-user-circle fa-2x text-muted"></i>
+                                    </div>
+                                    <div>
+                                        <h6 class="mb-0">${candidate.name}</h6>
+                                        <small class="text-muted">${candidate.position}</small>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <span class="badge ${stageClass}">${candidate.pipeline_stage}</span>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="progress mb-1" style="height: 8px;">
+                                    <div class="progress-bar" role="progressbar" style="width: ${progressPercentage}%" 
+                                         aria-valuenow="${progressPercentage}" aria-valuemin="0" aria-valuemax="100"></div>
+                                </div>
+                                <small class="text-muted">${progressPercentage}% Complete</small>
+                            </div>
+                            <div class="col-md-2 text-end">
+                                <button class="btn btn-outline-primary btn-sm" onclick="showPipelineDetails('${candidate.id}')">
+                                    <i class="fas fa-eye me-1"></i>Details
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function calculateProgress(stage) {
+            const stages = {
+                'Letter of Offer': 20,
+                'Visa Processing': 40,
+                'Medical Examination': 60,
+                'COE Approval': 80,
+                'Deployment Prep': 90,
+                'Deployed': 100
+            };
+            return stages[stage] || 0;
+        }
+
+        function getStageClass(stage) {
+            const classes = {
+                'Letter of Offer': 'bg-info',
+                'Visa Processing': 'bg-warning',
+                'Medical Examination': 'bg-primary',
+                'COE Approval': 'bg-secondary',
+                'Deployment Prep': 'bg-success',
+                'Deployed': 'bg-dark'
+            };
+            return classes[stage] || 'bg-light text-dark';
+        }
+
+        function showPipelineDetails(candidateId) {
+            // Implementation for showing detailed pipeline progress
+            console.log('Show pipeline details for candidate:', candidateId);
+        }
+
+        function refreshPipeline() {
+            loadPipelineData();
+        }
+
+        function exportPipelineReport() {
+            // Implementation for exporting pipeline report
+            console.log('Export pipeline report');
+        }
+
+        function showErrorMessage(message) {
+            // Show error message to user
+            console.error(message);
+        }
+    </script>
+</body>
+</html>

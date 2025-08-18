@@ -47,6 +47,11 @@
                             <i class="fas fa-life-ring me-1"></i>Support
                         </a>
                     </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="post-selection.html">
+                            <i class="fas fa-route me-1"></i>Pipeline
+                        </a>
+                    </li>
                 </ul>
                 
                 <ul class="navbar-nav">
@@ -107,13 +112,16 @@
                             </div>
                             <div class="col-md-3 text-end">
                                 <div class="btn-group-vertical w-100 gap-2">
-                                    <button class="btn btn-success btn-sm" onclick="showActionModal('approve')">
+                                    <button class="btn btn-success btn-sm" onclick="showActionModal('approve')" id="approve-btn">
                                         <i class="fas fa-check me-1"></i>Approve
                                     </button>
-                                    <button class="btn btn-warning btn-sm" onclick="showActionModal('interview')">
-                                        <i class="fas fa-calendar me-1"></i>Schedule Interview
+                                    <button class="btn btn-info btn-sm" onclick="showActionModal('reserve')" id="reserve-btn">
+                                        <i class="fas fa-bookmark me-1"></i>Reserve/Interview
                                     </button>
-                                    <button class="btn btn-danger btn-sm" onclick="showActionModal('reject')">
+                                    <button class="btn btn-warning btn-sm" onclick="showClientScorecard()" id="scorecard-btn" style="display:none;">
+                                        <i class="fas fa-clipboard-list me-1"></i>Assessment
+                                    </button>
+                                    <button class="btn btn-danger btn-sm" onclick="showActionModal('reject')" id="reject-btn">
                                         <i class="fas fa-times me-1"></i>Reject
                                     </button>
                                 </div>
@@ -313,6 +321,138 @@
         </div>
     </div>
 
+    <!-- Client Assessment Scorecard Modal -->
+    <div class="modal fade" id="scorecardModal" tabindex="-1">
+        <div class="modal-dialog modal-xl">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Client Assessment Scorecard</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="scorecard-form">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <h6>Technical Competency</h6>
+                                <div class="mb-3">
+                                    <label class="form-label">Technical Skills (1-5)</label>
+                                    <select class="form-select" name="technical_skills" required>
+                                        <option value="">Select Rating</option>
+                                        <option value="5">5 - Exceptional</option>
+                                        <option value="4">4 - Above Average</option>
+                                        <option value="3">3 - Satisfactory</option>
+                                        <option value="2">2 - Below Average</option>
+                                        <option value="1">1 - Inadequate</option>
+                                    </select>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">Relevant Experience (1-5)</label>
+                                    <select class="form-select" name="experience" required>
+                                        <option value="">Select Rating</option>
+                                        <option value="5">5 - Extensive Experience</option>
+                                        <option value="4">4 - Good Experience</option>
+                                        <option value="3">3 - Moderate Experience</option>
+                                        <option value="2">2 - Limited Experience</option>
+                                        <option value="1">1 - No Relevant Experience</option>
+                                    </select>
+                                </div>
+                                
+                                <h6>Communication & Cultural Fit</h6>
+                                <div class="mb-3">
+                                    <label class="form-label">English Proficiency (1-5)</label>
+                                    <select class="form-select" name="english_proficiency" required>
+                                        <option value="">Select Rating</option>
+                                        <option value="5">5 - Native/Fluent</option>
+                                        <option value="4">4 - Very Good</option>
+                                        <option value="3">3 - Good</option>
+                                        <option value="2">2 - Fair</option>
+                                        <option value="1">1 - Poor</option>
+                                    </select>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">Cultural Adaptability (1-5)</label>
+                                    <select class="form-select" name="cultural_fit" required>
+                                        <option value="">Select Rating</option>
+                                        <option value="5">5 - Excellent Fit</option>
+                                        <option value="4">4 - Good Fit</option>
+                                        <option value="3">3 - Adequate Fit</option>
+                                        <option value="2">2 - Some Concerns</option>
+                                        <option value="1">1 - Poor Fit</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <h6>Professional Attributes</h6>
+                                <div class="mb-3">
+                                    <label class="form-label">Initiative & Problem Solving (1-5)</label>
+                                    <select class="form-select" name="problem_solving" required>
+                                        <option value="">Select Rating</option>
+                                        <option value="5">5 - Outstanding</option>
+                                        <option value="4">4 - Very Good</option>
+                                        <option value="3">3 - Good</option>
+                                        <option value="2">2 - Fair</option>
+                                        <option value="1">1 - Poor</option>
+                                    </select>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">Teamwork & Collaboration (1-5)</label>
+                                    <select class="form-select" name="teamwork" required>
+                                        <option value="">Select Rating</option>
+                                        <option value="5">5 - Excellent Team Player</option>
+                                        <option value="4">4 - Good Team Player</option>
+                                        <option value="3">3 - Works Well in Teams</option>
+                                        <option value="2">2 - Some Team Skills</option>
+                                        <option value="1">1 - Poor Team Skills</option>
+                                    </select>
+                                </div>
+                                
+                                <h6>Overall Assessment</h6>
+                                <div class="mb-3">
+                                    <label class="form-label">Overall Rating (1-5)</label>
+                                    <select class="form-select" name="overall_rating" required>
+                                        <option value="">Select Overall Rating</option>
+                                        <option value="5">5 - Highly Recommend</option>
+                                        <option value="4">4 - Recommend</option>
+                                        <option value="3">3 - Consider with Reservations</option>
+                                        <option value="2">2 - Not Recommended</option>
+                                        <option value="1">1 - Strongly Not Recommended</option>
+                                    </select>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">Final Decision</label>
+                                    <select class="form-select" name="final_decision" required>
+                                        <option value="">Select Decision</option>
+                                        <option value="approve">Approve - Move to Letter of Offer</option>
+                                        <option value="reject">Reject - Return to Pool</option>
+                                        <option value="hold">Hold - Need More Information</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-12">
+                                <h6>Additional Comments</h6>
+                                <div class="mb-3">
+                                    <label class="form-label">Detailed Assessment Notes</label>
+                                    <textarea class="form-control" name="assessment_notes" rows="4" placeholder="Provide detailed feedback on the candidate's suitability for the position..."></textarea>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">Areas of Concern (if any)</label>
+                                    <textarea class="form-control" name="concerns" rows="3" placeholder="List any areas where the candidate may need additional support or training..."></textarea>
+                                </div>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-success" id="save-scorecard-btn">Save Assessment</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Document Viewer Modal -->
     <div class="modal fade" id="documentModal" tabindex="-1">
         <div class="modal-dialog modal-lg">
@@ -502,6 +642,92 @@
             
             new bootstrap.Modal(document.getElementById('documentModal')).show();
         }
+
+        // Scorecard modal functionality
+        let currentCandidateId = null;
+
+        function showScorecard(candidateId) {
+            currentCandidateId = candidateId;
+            
+            // Load existing scorecard data if available
+            loadExistingScorecard(candidateId);
+            
+            // Show the modal
+            const modal = new bootstrap.Modal(document.getElementById('scorecardModal'));
+            modal.show();
+        }
+
+        async function loadExistingScorecard(candidateId) {
+            try {
+                const response = await hubspotAPI.request(`/api/hubspot/candidates/${candidateId}/scorecard`);
+                
+                if (response && Object.keys(response).length > 0) {
+                    // Pre-fill form with existing data
+                    const form = document.getElementById('scorecard-form');
+                    
+                    Object.keys(response).forEach(key => {
+                        const element = form.querySelector(`[name="${key}"]`);
+                        if (element) {
+                            element.value = response[key] || '';
+                        }
+                    });
+                }
+            } catch (error) {
+                console.error('Error loading existing scorecard:', error);
+                // Continue with empty form if no existing data
+            }
+        }
+
+        async function saveScorecard() {
+            try {
+                const form = document.getElementById('scorecard-form');
+                const formData = new FormData(form);
+                
+                // Validate required fields
+                const requiredFields = ['technical_skills', 'experience', 'english_proficiency', 'cultural_fit', 
+                                      'problem_solving', 'teamwork', 'overall_rating', 'final_decision'];
+                
+                const missingFields = requiredFields.filter(field => !formData.get(field));
+                if (missingFields.length > 0) {
+                    alert(`Please fill in all required fields: ${missingFields.join(', ')}`);
+                    return;
+                }
+                
+                // Convert FormData to object
+                const scorecardData = {};
+                for (let [key, value] of formData.entries()) {
+                    scorecardData[key] = value;
+                }
+                
+                // Save to backend
+                const response = await hubspotAPI.request(
+                    `/api/hubspot/candidates/${currentCandidateId}/scorecard`,
+                    'POST',
+                    scorecardData
+                );
+                
+                // Close modal and refresh applicants
+                bootstrap.Modal.getInstance(document.getElementById('scorecardModal')).hide();
+                
+                // Show success message
+                showAlert('success', 'Assessment saved successfully');
+                
+                // Refresh the applicants list
+                loadApplicants();
+                
+            } catch (error) {
+                console.error('Error saving scorecard:', error);
+                alert('Failed to save assessment. Please try again.');
+            }
+        }
+
+        // Initialize scorecard save button on DOM load
+        document.addEventListener('DOMContentLoaded', function() {
+            const saveBtn = document.getElementById('save-scorecard-btn');
+            if (saveBtn) {
+                saveBtn.addEventListener('click', saveScorecard);
+            }
+        });
     </script>
 </body>
 </html>
