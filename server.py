@@ -27,7 +27,7 @@ logger = logging.getLogger(__name__)
 
 # Initialize Flask app
 app = Flask(__name__)
-app.secret_key = os.getenv('SECRET_KEY', 'pat-ap1-db965da2-dfdf-429a-9eb8-10febf0edaf2')
+app.secret_key = os.getenv('SECRET_KEY', 'xxxxx')
 
 # Enable CORS for frontend-backend communication
 CORS(app, origins=['http://localhost:5000', 'http://0.0.0.0:5000'])
