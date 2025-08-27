@@ -437,6 +437,212 @@ class TPRCApp {
         }
     }
 
+    async loadApplicantDocuments(applicantId) {
+        try {
+            const documents = await this.hubspotAPI.getCandidateDocuments(applicantId);
+            const documentsContainer = document.getElementById('documents-list');
+            
+            if (!documentsContainer) return;
+            
+            if (documents && documents.length > 0) {
+                documentsContainer.innerHTML = documents.map(doc => `
+                    <div class="document-item mb-3 p-3 border rounded">
+                        <div class="d-flex justify-content-between align-items-start">
+                            <div>
+                                <h6 class="mb-1">${doc.name}</h6>
+                                <small class="text-muted">${doc.type || 'Document'} • ${doc.category || 'General'}</small>
+                                <p class="mb-1 small">${doc.description || 'No description available'}</p>
+                            </div>
+                            <div class="text-end">
+                                <small class="text-muted">${this.formatDate(doc.upload_date)}</small>
+                                ${doc.file_url ? `<br><a href="${doc.file_url}" target="_blank" class="btn btn-sm btn-outline-primary mt-1">View</a>` : ''}
+                            </div>
+                        </div>
+                    </div>
+                `).join('');
+            } else {
+                documentsContainer.innerHTML = '<div class="text-muted text-center py-4">No documents available</div>';
+            }
+        } catch (error) {
+            console.error('Error loading applicant documents:', error);
+            const documentsContainer = document.getElementById('documents-list');
+            if (documentsContainer) {
+                documentsContainer.innerHTML = '<div class="text-danger text-center py-4">Failed to load documents</div>';
+            }
+        }
+    }
+
+    async loadApplicantAssessments(applicantId) {
+        try {
+            const assessments = await this.hubspotAPI.getCandidateAssessments(applicantId);
+            
+            // Update technical skills scores
+            const skillsContainer = document.getElementById('skills-scores');
+            if (skillsContainer && assessments.technical_scores) {
+                skillsContainer.innerHTML = Object.entries(assessments.technical_scores)
+                    .map(([skill, score]) => `
+                        <div class="d-flex justify-content-between mb-2">
+                            <span>${skill}</span>
+                            <div>
+                                <span class="badge bg-${score >= 80 ? 'success' : score >= 60 ? 'warning' : 'danger'}">${score}%</span>
+                            </div>
+                        </div>
+                    `).join('');
+            } else if (skillsContainer) {
+                skillsContainer.innerHTML = '<div class="text-muted">No technical assessment results available</div>';
+            }
+
+            // Update personality assessment
+            const personalityContainer = document.getElementById('personality-scores');
+            if (personalityContainer && assessments.personality) {
+                personalityContainer.innerHTML = Object.entries(assessments.personality)
+                    .map(([trait, score]) => `
+                        <div class="d-flex justify-content-between mb-2">
+                            <span>${trait}</span>
+                            <span class="text-primary">${score}</span>
+                        </div>
+                    `).join('');
+            } else if (personalityContainer) {
+                personalityContainer.innerHTML = '<div class="text-muted">No personality assessment results available</div>';
+            }
+
+            // Update assessment links
+            const linksContainer = document.getElementById('assessment-links');
+            if (linksContainer && assessments.links) {
+                linksContainer.innerHTML = assessments.links
+                    .map(link => `
+                        <div class="mb-2">
+                            <a href="${link.url}" target="_blank" class="btn btn-sm btn-outline-primary">
+                                <i class="fas fa-external-link-alt me-1"></i>${link.name}
+                            </a>
+                        </div>
+                    `).join('');
+            } else if (linksContainer) {
+                linksContainer.innerHTML = '<div class="text-muted">No assessment links available</div>';
+            }
+        } catch (error) {
+            console.error('Error loading applicant assessments:', error);
+        }
+    }
+
+    async loadApplicantMedia(applicantId) {
+        try {
+            // Load media files (photos, videos, etc.)
+            const mediaContainer = document.getElementById('media-gallery');
+            if (!mediaContainer) return;
+            
+            // For now, show placeholder as media handling needs specific implementation
+            mediaContainer.innerHTML = `
+                <div class="col-12 text-center py-5">
+                    <i class="fas fa-images fa-3x text-muted mb-3"></i>
+                    <h6 class="text-muted">Media Gallery</h6>
+                    <p class="text-muted">Documentary evidence and media files will be displayed here</p>
+                    <small class="text-muted">Media loading functionality coming soon</small>
+                </div>
+            `;
+        } catch (error) {
+            console.error('Error loading applicant media:', error);
+            const mediaContainer = document.getElementById('media-gallery');
+            if (mediaContainer) {
+                mediaContainer.innerHTML = '<div class="text-danger text-center py-4">Failed to load media</div>';
+            }
+        }
+    }
+
+    async loadApplicantScorecard(applicantId) {
+        try {
+            const scorecard = await this.hubspotAPI.request(`/candidates/${applicantId}/scorecard`);
+            const scorecardContainer = document.getElementById('scorecard-content');
+            
+            if (!scorecardContainer) return;
+            
+            if (scorecard && Object.keys(scorecard).length > 0) {
+                scorecardContainer.innerHTML = `
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6>Technical Competency</h6>
+                            <div class="mb-3">
+                                <label class="form-label">Technical Skills:</label>
+                                <span class="badge bg-${scorecard.technical_skills >= 4 ? 'success' : scorecard.technical_skills >= 3 ? 'warning' : 'danger'} ms-2">
+                                    ${scorecard.technical_skills || 'N/A'}/5
+                                </span>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Experience:</label>
+                                <span class="badge bg-${scorecard.experience >= 4 ? 'success' : scorecard.experience >= 3 ? 'warning' : 'danger'} ms-2">
+                                    ${scorecard.experience || 'N/A'}/5
+                                </span>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <h6>Communication & Fit</h6>
+                            <div class="mb-3">
+                                <label class="form-label">English Proficiency:</label>
+                                <span class="badge bg-${scorecard.english_proficiency >= 4 ? 'success' : scorecard.english_proficiency >= 3 ? 'warning' : 'danger'} ms-2">
+                                    ${scorecard.english_proficiency || 'N/A'}/5
+                                </span>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Cultural Fit:</label>
+                                <span class="badge bg-${scorecard.cultural_fit >= 4 ? 'success' : scorecard.cultural_fit >= 3 ? 'warning' : 'danger'} ms-2">
+                                    ${scorecard.cultural_fit || 'N/A'}/5
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                    <hr>
+                    <div class="row">
+                        <div class="col-12">
+                            <h6>Overall Assessment</h6>
+                            <div class="mb-3">
+                                <label class="form-label">Overall Rating:</label>
+                                <span class="badge bg-${scorecard.overall_rating >= 4 ? 'success' : scorecard.overall_rating >= 3 ? 'warning' : 'danger'} ms-2">
+                                    ${scorecard.overall_rating || 'N/A'}/5
+                                </span>
+                            </div>
+                            ${scorecard.assessment_notes ? `
+                                <div class="mb-3">
+                                    <label class="form-label">Notes:</label>
+                                    <p class="text-muted">${scorecard.assessment_notes}</p>
+                                </div>
+                            ` : ''}
+                            ${scorecard.final_decision ? `
+                                <div class="mb-3">
+                                    <label class="form-label">Decision:</label>
+                                    <span class="badge bg-${scorecard.final_decision === 'approve' ? 'success' : scorecard.final_decision === 'reject' ? 'danger' : 'secondary'} ms-2">
+                                        ${scorecard.final_decision.charAt(0).toUpperCase() + scorecard.final_decision.slice(1)}
+                                    </span>
+                                </div>
+                            ` : ''}
+                        </div>
+                    </div>
+                    <div class="text-end">
+                        <button class="btn btn-primary" onclick="openScorecardModal()">
+                            <i class="fas fa-edit me-1"></i>Edit Scorecard
+                        </button>
+                    </div>
+                `;
+            } else {
+                scorecardContainer.innerHTML = `
+                    <div class="text-center py-5">
+                        <i class="fas fa-clipboard-list fa-3x text-muted mb-3"></i>
+                        <h6 class="text-muted">No Scorecard Available</h6>
+                        <p class="text-muted">Start by creating an assessment scorecard for this candidate</p>
+                        <button class="btn btn-primary" onclick="openScorecardModal()">
+                            <i class="fas fa-plus me-1"></i>Create Scorecard
+                        </button>
+                    </div>
+                `;
+            }
+        } catch (error) {
+            console.error('Error loading applicant scorecard:', error);
+            const scorecardContainer = document.getElementById('scorecard-content');
+            if (scorecardContainer) {
+                scorecardContainer.innerHTML = '<div class="text-danger text-center py-4">Failed to load scorecard</div>';
+            }
+        }
+    }
+
     // Load documents
     async loadDocuments() {
         try {
@@ -888,12 +1094,50 @@ class TPRCApp {
         }
     }
 
+    async loadJobOrderDetails(jobOrderId) {
+        try {
+            const jobOrder = await this.hubspotAPI.getJobOrder(jobOrderId);
+            // Update job order details in the UI if elements exist
+            const jobTitleElement = document.getElementById('job-title');
+            const jobLocationElement = document.getElementById('job-location'); 
+            const jobTypeElement = document.getElementById('job-type');
+            
+            if (jobTitleElement) jobTitleElement.textContent = jobOrder.title || 'Job Order';
+            if (jobLocationElement) jobLocationElement.textContent = jobOrder.location || '';
+            if (jobTypeElement) jobTypeElement.textContent = jobOrder.position_type || '';
+            
+            return jobOrder;
+        } catch (error) {
+            console.error('Error loading job order details:', error);
+            throw error;
+        }
+    }
+
     // Additional methods would be implemented here for document management,
     // assessments, media, scorecard, etc.
 }
 
-// Global functions for candidate actions
+// Global functions for candidate actions and modal handling
 let selectedCandidateId = null;
+
+function openScorecardModal() {
+    const modal = new bootstrap.Modal(document.getElementById('scorecardModal'));
+    modal.show();
+}
+
+function loadJobOrderDetails(jobOrderId) {
+    if (window.tprcApp) {
+        return window.tprcApp.loadJobOrderDetails(jobOrderId);
+    }
+    console.error('TPRC App not initialized');
+}
+
+function loadApplicantDetails(applicantId) {
+    if (window.tprcApp) {
+        return window.tprcApp.loadApplicantDetails(applicantId);
+    }
+    console.error('TPRC App not initialized');
+}
 
 function showApprovalConfirmation(candidateId, candidateName) {
     selectedCandidateId = candidateId;
@@ -908,9 +1152,37 @@ function scheduleInterview(candidateId) {
     alert('Interview scheduling functionality coming soon!');
 }
 
-function rejectCandidate(candidateId) {
-    // TODO: Implement candidate rejection
-    alert('Candidate rejection functionality coming soon!');
+async function rejectCandidate(candidateId, candidateName) {
+    // Show confirmation dialog
+    const confirmed = confirm(`Are you sure you want to reject ${candidateName}? This action cannot be undone.`);
+    
+    if (!confirmed) return;
+    
+    try {
+        const reason = prompt('Please provide a reason for rejection (optional):') || 'Rejected via Client Portal';
+        
+        // Call HubSpot API to reject candidate
+        const hubspotAPI = new HubSpotAPI();
+        const response = await hubspotAPI.submitCandidateAction(candidateId, {
+            actionType: 'reject',
+            reason: reason,
+            notes: `Rejected by client on ${new Date().toLocaleDateString()}`
+        });
+        
+        if (response.success) {
+            // Show success message  
+            showAlert('success', 'Candidate rejected successfully! Client Reject workflow has been triggered.');
+            
+            // Refresh the page to show updated status
+            window.location.reload();
+        } else {
+            throw new Error(response.message || 'Failed to reject candidate');
+        }
+        
+    } catch (error) {
+        console.error('Error rejecting candidate:', error);
+        alert('Failed to reject candidate: ' + error.message);
+    }
 }
 
 // Handle approval confirmation
@@ -933,18 +1205,16 @@ document.addEventListener('DOMContentLoaded', function() {
                     throw new Error('Job order ID not found');
                 }
                 
-                // Call API to approve candidate
-                const response = await fetch(`/api/hubspot/job-orders/${jobOrderId}/candidates/${selectedCandidateId}/approve`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${localStorage.getItem('authToken')}`
-                    }
+                // Call HubSpot API to approve candidate
+                const hubspotAPI = new HubSpotAPI();
+                const response = await hubspotAPI.submitCandidateAction(selectedCandidateId, {
+                    actionType: 'approve',
+                    reason: 'Approved via Client Portal',
+                    notes: `Approved by client on ${new Date().toLocaleDateString()}`
                 });
                 
-                if (!response.ok) {
-                    const error = await response.json();
-                    throw new Error(error.message || 'Failed to approve candidate');
+                if (!response.success) {
+                    throw new Error(response.message || 'Failed to approve candidate');
                 }
                 
                 // Success - close modal and refresh candidates
@@ -952,7 +1222,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 modal.hide();
                 
                 // Show success message
-                showAlert('success', 'Candidate approved successfully! Association label updated to "Selected".');
+                showAlert('success', 'Candidate approved successfully! Client Approve workflow has been triggered.');
                 
                 // Refresh candidates list
                 if (window.tprcApp) {

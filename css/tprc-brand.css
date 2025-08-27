@@ -1,6 +1,6 @@
 /* TPRC Brand Colors and Typography */
 :root {
-    --tprc-primary: #2C5282;
+    --tprc-primary: #4299E1;
     --tprc-primary-dark: #1A365D;
     --tprc-primary-light: #4299E1;
     --tprc-secondary: #38B2AC;
@@ -28,6 +28,10 @@
 /* Primary Brand Colors */
 .bg-tprc-primary {
     background-color: var(--tprc-primary) !important;
+}
+
+.bg-tprc-primary-login {
+    background-color: #F7FAFC !important;
 }
 
 .bg-tprc-primary-dark {
@@ -233,7 +237,7 @@ h1, h2, h3, h4, h5, h6 {
 
 /* Brand Links */
 a {
-    color: var(--tprc-primary);
+    color: #F56565;
     text-decoration: none;
     transition: color 0.3s ease;
 }
@@ -456,8 +460,8 @@ a:hover {
 
 /* Override Bootstrap warning colors with purple */
 .btn-warning {
-    background-color: var(--tprc-warning) !important;
-    border-color: var(--tprc-warning) !important;
+    background-color: var(--tprc-accent) !important;
+    border-color: var(--tprc-accent) !important;
     color: white !important;
 }
 
@@ -476,19 +480,19 @@ a:hover {
 }
 
 .badge-warning {
-    background-color: var(--tprc-warning) !important;
+    background-color: var(--tprc-accent) !important;
     color: white !important;
 }
 
 .text-warning {
-    color: var(--tprc-warning) !important;
+    color: var(--tprc-accent) !important;
 }
 
 .bg-warning {
-    background-color: var(--tprc-warning) !important;
+    background-color: var(--tprc-accent) !important;
     color: white !important;
 }
 
 .border-warning {
-    border-color: var(--tprc-warning) !important;
+    border-color: var(--tprc-accent) !important;
 }

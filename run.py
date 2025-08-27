@@ -28,7 +28,9 @@ def main():
     app.config.update(
         DEBUG=False,
         TESTING=False,
-        JSON_SORT_KEYS=False
+        JSON_SORT_KEYS=False,
+        # Ensure production environment is set
+        ENV='production'
     )
     
     # Start the server

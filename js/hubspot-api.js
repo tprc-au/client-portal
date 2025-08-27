@@ -74,6 +74,31 @@ class HubSpotAPI {
         return await this.request(`/candidates/${candidateId}/assessments`);
     }
 
+    // Submit candidate action (approve/reject/reserve)
+    async submitCandidateAction(candidateId, actionData) {
+        return await this.request(`/candidates/${candidateId}/actions`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(actionData)
+        });
+    }
+
+    // Trigger workflow (for advanced integrations)
+    async triggerWorkflow(workflowType, data) {
+        return await this.request('/workflows/trigger', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                workflowType,
+                data
+            })
+        });
+    }
+
     // Submit candidate action (approve, reject, interview)
     async submitCandidateAction(actionData) {
         return await this.request('/candidates/action', {
@@ -154,6 +179,30 @@ class HubSpotAPI {
         const params = new URLSearchParams({ q: searchTerm });
         if (jobOrderId) params.append('job_order_id', jobOrderId);
         return await this.request(`/search/candidates?${params}`);
+    }
+
+    // Candidate documents
+    async getCandidateDocuments(candidateId) {
+        try {
+            return await this.request(`/candidates/${candidateId}/documents`);
+        } catch (error) {
+            console.error(`Error getting candidate documents for ${candidateId}:`, error);
+            return []; // Return empty array on error
+        }
+    }
+
+    // Candidate assessments
+    async getCandidateAssessments(candidateId) {
+        try {
+            return await this.request(`/candidates/${candidateId}/assessments`);
+        } catch (error) {
+            console.error(`Error getting candidate assessments for ${candidateId}:`, error);
+            return { 
+                technical_scores: null, 
+                personality: null, 
+                links: null 
+            }; // Return empty structure on error
+        }
     }
 
     // Workflow triggers

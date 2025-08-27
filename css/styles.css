@@ -5,7 +5,7 @@ html, body {
     height: 100%;
     margin: 0;
     padding: 0;
-    background-color: #F8FAFC;
+    background-color: #fff;
 }
 
 .container-fluid {
@@ -14,7 +14,7 @@ html, body {
 
 /* Login Page Styles */
 .login-page {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    /*background: linear-gradient(135deg, #EDEDE9 0%, #ffffff 100%);*/
     min-height: 100vh;
 }
 
@@ -92,7 +92,7 @@ html, body {
 }
 
 .table thead th {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: #718096;
     color: white;
     font-weight: 600;
     text-transform: uppercase;
