@@ -74,31 +74,6 @@ class HubSpotAPI {
         return await this.request(`/candidates/${candidateId}/assessments`);
     }
 
-    // Submit candidate action (approve/reject/reserve)
-    async submitCandidateAction(candidateId, actionData) {
-        return await this.request(`/candidates/${candidateId}/actions`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify(actionData)
-        });
-    }
-
-    // Trigger workflow (for advanced integrations)
-    async triggerWorkflow(workflowType, data) {
-        return await this.request('/workflows/trigger', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-                workflowType,
-                data
-            })
-        });
-    }
-
     // Submit candidate action (approve, reject, interview)
     async submitCandidateAction(actionData) {
         return await this.request('/candidates/action', {
@@ -179,30 +154,6 @@ class HubSpotAPI {
         const params = new URLSearchParams({ q: searchTerm });
         if (jobOrderId) params.append('job_order_id', jobOrderId);
         return await this.request(`/search/candidates?${params}`);
-    }
-
-    // Candidate documents
-    async getCandidateDocuments(candidateId) {
-        try {
-            return await this.request(`/candidates/${candidateId}/documents`);
-        } catch (error) {
-            console.error(`Error getting candidate documents for ${candidateId}:`, error);
-            return []; // Return empty array on error
-        }
-    }
-
-    // Candidate assessments
-    async getCandidateAssessments(candidateId) {
-        try {
-            return await this.request(`/candidates/${candidateId}/assessments`);
-        } catch (error) {
-            console.error(`Error getting candidate assessments for ${candidateId}:`, error);
-            return { 
-                technical_scores: null, 
-                personality: null, 
-                links: null 
-            }; // Return empty structure on error
-        }
     }
 
     // Workflow triggers
@@ -371,7 +322,7 @@ async function loadJobOrders(filters = {}) {
         if (jobOrders.length === 0) {
             tableBody.innerHTML = `
                 <tr>
-                    <td colspan="7" class="text-center py-4">
+                    <td colspan="6" class="text-center py-4">
                         <i class="fas fa-briefcase fa-2x text-muted mb-2"></i>
                         <p class="mb-0">No job orders found</p>
                     </td>
@@ -395,16 +346,10 @@ async function loadJobOrders(filters = {}) {
                 <td>
                     <span class="status-badge status-${job.status.toLowerCase().replace(' ', '-')}">${job.status}</span>
                 </td>
-                <td>${formatDate(job.created_date)}</td>
                 <td>
-                    <div class="btn-group" role="group">
-                        <a href="job-order.html?id=${job.id}" class="btn btn-outline-primary btn-sm">
-                            <i class="fas fa-eye"></i>
-                        </a>
-                        <button class="btn btn-outline-info btn-sm" onclick="showJobDetails(${job.id})">
-                            <i class="fas fa-info-circle"></i>
-                        </button>
-                    </div>
+                    <a href="job-order.html?id=${job.id}" class="btn btn-outline-primary btn-sm">
+                        <i class="fas fa-eye"></i>
+                    </a>
                 </td>
             </tr>
         `).join('');
@@ -416,7 +361,7 @@ async function loadJobOrders(filters = {}) {
         if (tableBody) {
             tableBody.innerHTML = `
                 <tr>
-                    <td colspan="7" class="text-center py-4 text-danger">
+                    <td colspan="6" class="text-center py-4 text-danger">
                         <i class="fas fa-exclamation-triangle fa-2x mb-2"></i>
                         <p class="mb-0">Error loading job orders: ${error.message}</p>
                     </td>

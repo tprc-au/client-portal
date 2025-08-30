@@ -127,13 +127,12 @@ The frontend follows a traditional multi-page architecture where each HTML file 
 - Fixed variable definition order to prevent startup errors
 - Verified health endpoints respond correctly to deployment health checks
 
-**HubSpot Workflow Integration Completed**: Successfully implemented candidate approval/rejection system with workflow triggers:
-- Added `approve_candidate` and `reject_candidate` methods with proper HubSpot workflow triggers
-- Implemented workflow triggering for Client Approve (ID: 2509546972) and Client Reject (ID: 2509546994) workflows
-- Updated frontend JavaScript to handle approve/reject actions through unified API endpoints
-- Fixed "Failed to get candidate" error by implementing proper workflow enrollment API calls
-
 **Real HubSpot Integration Completed**: Successfully implemented complete data integration with authentic HubSpot custom objects, associations, and candidate records.
+
+**HubSpot Workflow Integration**: Added automatic workflow triggers for candidate actions:
+- Approve button triggers HubSpot workflow ID: 2509546972
+- Reject button triggers HubSpot workflow ID: 2509546994
+- Status updates and workflow enrollments logged in real-time
 
 **Company-Specific Security**: Implemented proper data filtering to show only company-associated job orders and applications, preventing cross-company data exposure.
 

@@ -70,6 +70,22 @@ class TPRCApp {
         }
     }
 
+    // Setup applicant breadcrumb navigation
+    setupApplicantBreadcrumb(applicant, jobOrder) {
+        const breadcrumbContainer = document.querySelector('.breadcrumb');
+        if (!breadcrumbContainer) return;
+        
+        breadcrumbContainer.innerHTML = `
+            <li class="breadcrumb-item"><a href="dashboard.html">Dashboard</a></li>
+            <li class="breadcrumb-item">
+                <a href="job-order.html?id=${jobOrder?.id || ''}">${jobOrder?.title || 'Job Order'}</a>
+            </li>
+            <li class="breadcrumb-item active" aria-current="page">
+                ${applicant?.first_name || 'Unknown'} ${applicant?.last_name || 'Applicant'}
+            </li>
+        `;
+    }
+
     // Dashboard initialization
     async initializeDashboard() {
         try {
@@ -409,237 +425,223 @@ class TPRCApp {
 
     // Load applicant details
     async loadApplicantDetails(applicantId) {
+        console.log('Starting to load applicant details for ID:', applicantId);
+        
+        // Validate inputs
+        if (!applicantId) {
+            throw new Error('No applicant ID provided');
+        }
+        
+        if (!this.hubspotAPI) {
+            throw new Error('HubSpot API not initialized');
+        }
+        
         try {
+            console.log('Calling hubspotAPI.getCandidate...');
             const applicant = await this.hubspotAPI.getCandidate(applicantId);
+            console.log('Applicant data received:', applicant);
+            console.log('Applicant data type:', typeof applicant);
             
-            // Update applicant header
-            document.getElementById('applicant-name').textContent = `${applicant.first_name} ${applicant.last_name}`;
-            document.getElementById('applicant-age').textContent = applicant.age || 'N/A';
-            document.getElementById('applicant-location').textContent = applicant.location || 'N/A';
-            document.getElementById('applicant-email').textContent = applicant.email || 'N/A';
-            document.getElementById('applicant-phone').textContent = applicant.phone || 'N/A';
-            document.getElementById('applicant-status').textContent = applicant.status || 'N/A';
-            document.getElementById('applicant-summary').textContent = applicant.summary || 'No summary available';
+            if (!applicant) {
+                throw new Error('No applicant data received from server');
+            }
+            
+            if (typeof applicant !== 'object') {
+                throw new Error('Invalid applicant data format received: ' + typeof applicant);
+            }
+            
+            // Safely update applicant header with null checks
+            const nameEl = document.getElementById('applicant-name');
+            if (nameEl) nameEl.textContent = `${applicant.first_name || 'Unknown'} ${applicant.last_name || 'Applicant'}`;
+            
+            const ageEl = document.getElementById('applicant-age');
+            if (ageEl) ageEl.textContent = applicant.age || 'N/A';
+            
+            const locationEl = document.getElementById('applicant-location');
+            if (locationEl) locationEl.textContent = applicant.location || 'N/A';
+            
+            const emailEl = document.getElementById('applicant-email');
+            if (emailEl) emailEl.textContent = applicant.email || 'N/A';
+            
+            const phoneEl = document.getElementById('applicant-phone');
+            if (phoneEl) phoneEl.textContent = applicant.phone || 'N/A';
+            
+            const statusEl = document.getElementById('applicant-status');
+            if (statusEl) statusEl.textContent = applicant.status || 'N/A';
+            
+            const summaryEl = document.getElementById('applicant-summary');
+            if (summaryEl) summaryEl.textContent = applicant.summary || 'No summary available';
+            
+            // Also update the professional summary section
+            const profSummaryEl = document.getElementById('professional-summary');
+            if (profSummaryEl) profSummaryEl.textContent = applicant.summary || 'No professional summary available';
+
+            // Update application details in header
+            const appliedDate = applicant.created_date || applicant.createdate || applicant.application_date || new Date().toISOString();
+            const appliedDateEl = document.getElementById('applied-date');
+            if (appliedDateEl) {
+                appliedDateEl.textContent = this.formatDate ? this.formatDate(appliedDate) : new Date(appliedDate).toLocaleDateString();
+            }
+            
+            const appStatusEl = document.getElementById('application-status');
+            if (appStatusEl) appStatusEl.textContent = applicant.status || 'N/A';
+
+            // Load job order details if jobOrderId is available
+            const urlParams = new URLSearchParams(window.location.search);
+            const jobOrderId = urlParams.get('jobOrderId');
+            if (jobOrderId) {
+                await this.loadJobOrderInfo(jobOrderId);
+            }
 
             // Load additional applicant data
+            console.log('Loading applicant overview...');
             this.loadApplicantOverview(applicant);
-            this.loadApplicantDocuments(applicantId);
-            this.loadApplicantAssessments(applicantId);
-            this.loadApplicantMedia(applicantId);
-            this.loadApplicantScorecard(applicantId);
+            console.log('Applicant overview loaded successfully');
 
             // Store for later use
             window.currentApplicant = applicant;
+            console.log('Applicant details loaded successfully');
 
         } catch (error) {
             console.error('Error loading applicant details:', error);
-            this.showAlert('danger', 'Failed to load applicant details: ' + error.message);
-        }
-    }
-
-    async loadApplicantDocuments(applicantId) {
-        try {
-            const documents = await this.hubspotAPI.getCandidateDocuments(applicantId);
-            const documentsContainer = document.getElementById('documents-list');
+            console.error('Full error details:', error);
+            console.error('Error stack:', error.stack);
             
-            if (!documentsContainer) return;
+            // Show a more helpful error message
+            const errorMessage = error.message || 'Unknown error occurred';
+            console.log('Showing error alert:', errorMessage);
             
-            if (documents && documents.length > 0) {
-                documentsContainer.innerHTML = documents.map(doc => `
-                    <div class="document-item mb-3 p-3 border rounded">
-                        <div class="d-flex justify-content-between align-items-start">
-                            <div>
-                                <h6 class="mb-1">${doc.name}</h6>
-                                <small class="text-muted">${doc.type || 'Document'} • ${doc.category || 'General'}</small>
-                                <p class="mb-1 small">${doc.description || 'No description available'}</p>
-                            </div>
-                            <div class="text-end">
-                                <small class="text-muted">${this.formatDate(doc.upload_date)}</small>
-                                ${doc.file_url ? `<br><a href="${doc.file_url}" target="_blank" class="btn btn-sm btn-outline-primary mt-1">View</a>` : ''}
-                            </div>
-                        </div>
-                    </div>
-                `).join('');
-            } else {
-                documentsContainer.innerHTML = '<div class="text-muted text-center py-4">No documents available</div>';
-            }
-        } catch (error) {
-            console.error('Error loading applicant documents:', error);
-            const documentsContainer = document.getElementById('documents-list');
-            if (documentsContainer) {
-                documentsContainer.innerHTML = '<div class="text-danger text-center py-4">Failed to load documents</div>';
+            // Try to show alert, but also fallback to simple alert
+            try {
+                this.showAlert('danger', 'Failed to load applicant details: ' + errorMessage);
+            } catch (alertError) {
+                console.error('Error showing alert:', alertError);
+                alert('Failed to load applicant details: ' + errorMessage);
             }
         }
     }
 
-    async loadApplicantAssessments(applicantId) {
-        try {
-            const assessments = await this.hubspotAPI.getCandidateAssessments(applicantId);
-            
-            // Update technical skills scores
-            const skillsContainer = document.getElementById('skills-scores');
-            if (skillsContainer && assessments.technical_scores) {
-                skillsContainer.innerHTML = Object.entries(assessments.technical_scores)
-                    .map(([skill, score]) => `
-                        <div class="d-flex justify-content-between mb-2">
-                            <span>${skill}</span>
-                            <div>
-                                <span class="badge bg-${score >= 80 ? 'success' : score >= 60 ? 'warning' : 'danger'}">${score}%</span>
-                            </div>
-                        </div>
-                    `).join('');
-            } else if (skillsContainer) {
-                skillsContainer.innerHTML = '<div class="text-muted">No technical assessment results available</div>';
-            }
-
-            // Update personality assessment
-            const personalityContainer = document.getElementById('personality-scores');
-            if (personalityContainer && assessments.personality) {
-                personalityContainer.innerHTML = Object.entries(assessments.personality)
-                    .map(([trait, score]) => `
-                        <div class="d-flex justify-content-between mb-2">
-                            <span>${trait}</span>
-                            <span class="text-primary">${score}</span>
-                        </div>
-                    `).join('');
-            } else if (personalityContainer) {
-                personalityContainer.innerHTML = '<div class="text-muted">No personality assessment results available</div>';
-            }
-
-            // Update assessment links
-            const linksContainer = document.getElementById('assessment-links');
-            if (linksContainer && assessments.links) {
-                linksContainer.innerHTML = assessments.links
-                    .map(link => `
-                        <div class="mb-2">
-                            <a href="${link.url}" target="_blank" class="btn btn-sm btn-outline-primary">
-                                <i class="fas fa-external-link-alt me-1"></i>${link.name}
-                            </a>
-                        </div>
-                    `).join('');
-            } else if (linksContainer) {
-                linksContainer.innerHTML = '<div class="text-muted">No assessment links available</div>';
-            }
-        } catch (error) {
-            console.error('Error loading applicant assessments:', error);
-        }
-    }
-
-    async loadApplicantMedia(applicantId) {
-        try {
-            // Load media files (photos, videos, etc.)
-            const mediaContainer = document.getElementById('media-gallery');
-            if (!mediaContainer) return;
-            
-            // For now, show placeholder as media handling needs specific implementation
-            mediaContainer.innerHTML = `
-                <div class="col-12 text-center py-5">
-                    <i class="fas fa-images fa-3x text-muted mb-3"></i>
-                    <h6 class="text-muted">Media Gallery</h6>
-                    <p class="text-muted">Documentary evidence and media files will be displayed here</p>
-                    <small class="text-muted">Media loading functionality coming soon</small>
-                </div>
-            `;
-        } catch (error) {
-            console.error('Error loading applicant media:', error);
-            const mediaContainer = document.getElementById('media-gallery');
-            if (mediaContainer) {
-                mediaContainer.innerHTML = '<div class="text-danger text-center py-4">Failed to load media</div>';
-            }
-        }
-    }
-
-    async loadApplicantScorecard(applicantId) {
-        try {
-            const scorecard = await this.hubspotAPI.request(`/candidates/${applicantId}/scorecard`);
-            const scorecardContainer = document.getElementById('scorecard-content');
-            
-            if (!scorecardContainer) return;
-            
-            if (scorecard && Object.keys(scorecard).length > 0) {
-                scorecardContainer.innerHTML = `
-                    <div class="row">
-                        <div class="col-md-6">
-                            <h6>Technical Competency</h6>
-                            <div class="mb-3">
-                                <label class="form-label">Technical Skills:</label>
-                                <span class="badge bg-${scorecard.technical_skills >= 4 ? 'success' : scorecard.technical_skills >= 3 ? 'warning' : 'danger'} ms-2">
-                                    ${scorecard.technical_skills || 'N/A'}/5
-                                </span>
-                            </div>
-                            <div class="mb-3">
-                                <label class="form-label">Experience:</label>
-                                <span class="badge bg-${scorecard.experience >= 4 ? 'success' : scorecard.experience >= 3 ? 'warning' : 'danger'} ms-2">
-                                    ${scorecard.experience || 'N/A'}/5
-                                </span>
-                            </div>
-                        </div>
-                        <div class="col-md-6">
-                            <h6>Communication & Fit</h6>
-                            <div class="mb-3">
-                                <label class="form-label">English Proficiency:</label>
-                                <span class="badge bg-${scorecard.english_proficiency >= 4 ? 'success' : scorecard.english_proficiency >= 3 ? 'warning' : 'danger'} ms-2">
-                                    ${scorecard.english_proficiency || 'N/A'}/5
-                                </span>
-                            </div>
-                            <div class="mb-3">
-                                <label class="form-label">Cultural Fit:</label>
-                                <span class="badge bg-${scorecard.cultural_fit >= 4 ? 'success' : scorecard.cultural_fit >= 3 ? 'warning' : 'danger'} ms-2">
-                                    ${scorecard.cultural_fit || 'N/A'}/5
-                                </span>
-                            </div>
-                        </div>
-                    </div>
-                    <hr>
-                    <div class="row">
-                        <div class="col-12">
-                            <h6>Overall Assessment</h6>
-                            <div class="mb-3">
-                                <label class="form-label">Overall Rating:</label>
-                                <span class="badge bg-${scorecard.overall_rating >= 4 ? 'success' : scorecard.overall_rating >= 3 ? 'warning' : 'danger'} ms-2">
-                                    ${scorecard.overall_rating || 'N/A'}/5
-                                </span>
-                            </div>
-                            ${scorecard.assessment_notes ? `
-                                <div class="mb-3">
-                                    <label class="form-label">Notes:</label>
-                                    <p class="text-muted">${scorecard.assessment_notes}</p>
-                                </div>
-                            ` : ''}
-                            ${scorecard.final_decision ? `
-                                <div class="mb-3">
-                                    <label class="form-label">Decision:</label>
-                                    <span class="badge bg-${scorecard.final_decision === 'approve' ? 'success' : scorecard.final_decision === 'reject' ? 'danger' : 'secondary'} ms-2">
-                                        ${scorecard.final_decision.charAt(0).toUpperCase() + scorecard.final_decision.slice(1)}
-                                    </span>
-                                </div>
-                            ` : ''}
-                        </div>
-                    </div>
-                    <div class="text-end">
-                        <button class="btn btn-primary" onclick="openScorecardModal()">
-                            <i class="fas fa-edit me-1"></i>Edit Scorecard
-                        </button>
-                    </div>
+    // Show action modal for approve/interview/reject
+    showActionModal(actionType) {
+        const modal = new bootstrap.Modal(document.getElementById('actionModal'));
+        const modalTitle = document.getElementById('actionModalTitle');
+        const actionTypeInput = document.getElementById('action-type');
+        const reasonSelect = document.getElementById('action-reason');
+        const interviewScheduling = document.getElementById('interview-scheduling');
+        
+        actionTypeInput.value = actionType;
+        
+        // Set modal title and populate reason options
+        switch(actionType) {
+            case 'approve':
+                modalTitle.textContent = 'Approve Applicant';
+                reasonSelect.innerHTML = `
+                    <option value="">Select reason...</option>
+                    <option value="qualified">Meets all qualifications</option>
+                    <option value="experience">Strong relevant experience</option>
+                    <option value="skills">Excellent skill match</option>
+                    <option value="cultural_fit">Good cultural fit</option>
                 `;
-            } else {
-                scorecardContainer.innerHTML = `
-                    <div class="text-center py-5">
-                        <i class="fas fa-clipboard-list fa-3x text-muted mb-3"></i>
-                        <h6 class="text-muted">No Scorecard Available</h6>
-                        <p class="text-muted">Start by creating an assessment scorecard for this candidate</p>
-                        <button class="btn btn-primary" onclick="openScorecardModal()">
-                            <i class="fas fa-plus me-1"></i>Create Scorecard
-                        </button>
-                    </div>
+                interviewScheduling.style.display = 'none';
+                break;
+            case 'interview':
+                modalTitle.textContent = 'Schedule Interview';
+                reasonSelect.innerHTML = `
+                    <option value="">Select interview type...</option>
+                    <option value="phone_screen">Phone screening</option>
+                    <option value="technical">Technical interview</option>
+                    <option value="behavioral">Behavioral interview</option>
+                    <option value="final">Final interview</option>
                 `;
+                interviewScheduling.style.display = 'block';
+                break;
+            case 'reject':
+                modalTitle.textContent = 'Reject Applicant';
+                reasonSelect.innerHTML = `
+                    <option value="">Select reason...</option>
+                    <option value="qualifications">Insufficient qualifications</option>
+                    <option value="experience">Lacks required experience</option>
+                    <option value="skills">Skills mismatch</option>
+                    <option value="availability">Availability conflict</option>
+                    <option value="other">Other</option>
+                `;
+                interviewScheduling.style.display = 'none';
+                break;
+        }
+        
+        modal.show();
+    }
+
+    // Handle action form submission
+    async submitAction() {
+        const form = document.getElementById('action-form');
+        const formData = new FormData(form);
+        const actionData = {
+            actionType: formData.get('actionType'),
+            reason: formData.get('reason'),
+            notes: formData.get('notes')
+        };
+        
+        if (actionData.actionType === 'interview') {
+            actionData.interviewDate = formData.get('interviewDate');
+            actionData.interviewTime = formData.get('interviewTime');
+        }
+        
+        if (!actionData.reason) {
+            this.showAlert('warning', 'Please select a reason');
+            return;
+        }
+        
+        try {
+            const applicantId = new URLSearchParams(window.location.search).get('id');
+            const jobOrderId = new URLSearchParams(window.location.search).get('jobOrderId');
+            
+            // Add the applicant ID and job order ID to the action data
+            actionData.applicantId = applicantId;
+            actionData.jobOrderId = jobOrderId;
+            
+            const response = await this.hubspotAPI.submitCandidateAction(actionData);
+            
+            if (response.success) {
+                this.showAlert('success', `Applicant ${actionData.actionType} successfully!`);
+                bootstrap.Modal.getInstance(document.getElementById('actionModal')).hide();
+                
+                // Reload the page to show updated status
+                setTimeout(() => {
+                    window.location.reload();
+                }, 1500);
+            } else {
+                this.showAlert('danger', 'Failed to submit action: ' + response.message);
             }
         } catch (error) {
-            console.error('Error loading applicant scorecard:', error);
-            const scorecardContainer = document.getElementById('scorecard-content');
-            if (scorecardContainer) {
-                scorecardContainer.innerHTML = '<div class="text-danger text-center py-4">Failed to load scorecard</div>';
-            }
+            console.error('Error submitting action:', error);
+            this.showAlert('danger', 'Failed to submit action: ' + error.message);
+        }
+    }
+
+    // Load job order information for applicant page
+    async loadJobOrderInfo(jobOrderId) {
+        try {
+            const jobOrder = await this.hubspotAPI.getJobOrder(jobOrderId);
+            
+            // Update job order details in the sidebar
+            document.getElementById('job-title').textContent = jobOrder.title || 'Job Title';
+            document.getElementById('job-type').textContent = jobOrder.position_type || 'Position Type';
+            document.getElementById('job-location').textContent = jobOrder.location || 'Location';
+            document.getElementById('job-created').textContent = jobOrder.created_date ? (this.formatDate ? this.formatDate(jobOrder.created_date) : new Date(jobOrder.created_date).toLocaleDateString()) : 'N/A';
+            document.getElementById('job-status').textContent = jobOrder.status || 'Active';
+            
+            // Store for later use
+            window.currentJobOrder = jobOrder;
+
+        } catch (error) {
+            console.error('Error loading job order info:', error);
+            // Set fallback values if job order can't be loaded
+            document.getElementById('job-title').textContent = 'Job Order Information Unavailable';
+            document.getElementById('job-type').textContent = 'N/A';
+            document.getElementById('job-location').textContent = 'N/A';
+            document.getElementById('job-created').textContent = 'N/A';
+            document.getElementById('job-status').textContent = 'N/A';
         }
     }
 
@@ -773,16 +775,7 @@ class TPRCApp {
                         </div>
                         <div class="col-md-4">
                             <div class="action-btn-group">
-                                <button class="action-btn action-btn-approve" onclick="showApprovalConfirmation('${candidate.id}', '${escapeHtml(candidate.name)}')">
-                                    <i class="fas fa-check me-1"></i>Approve
-                                </button>
-                                <button class="action-btn action-btn-interview" onclick="scheduleInterview('${candidate.id}')">
-                                    <i class="fas fa-calendar me-1"></i>Interview
-                                </button>
-                                <button class="action-btn action-btn-reject" onclick="rejectCandidate('${candidate.id}')">
-                                    <i class="fas fa-times me-1"></i>Reject
-                                </button>
-                                <a href="applicant.html?id=${candidate.id}&jobOrderId=${window.currentJobOrder?.id || ''}" class="btn btn-outline-info btn-sm">
+                                <a href="applicant.html?id=${candidate.id}&jobOrderId=${new URLSearchParams(window.location.search).get('id') || ''}" class="btn btn-outline-info btn-sm">
                                     <i class="fas fa-eye me-1"></i>View Profile
                                 </a>
                             </div>
@@ -1008,33 +1001,83 @@ class TPRCApp {
 
     // Load applicant overview data
     loadApplicantOverview(applicant) {
-        // Professional summary
-        const summaryEl = document.getElementById('professional-summary');
-        if (summaryEl) {
-            summaryEl.textContent = applicant.professional_summary || 'No professional summary available';
-        }
+        console.log('loadApplicantOverview called with:', applicant);
+        try {
+            // Professional summary
+            const summaryEl = document.getElementById('professional-summary');
+            if (summaryEl) {
+                summaryEl.textContent = applicant.summary || applicant.professional_summary || 'No professional summary available';
+                console.log('Professional summary updated');
+            } else {
+                console.warn('professional-summary element not found');
+            }
 
         // Key skills
         const skillsEl = document.getElementById('key-skills');
         if (skillsEl) {
-            skillsEl.innerHTML = (applicant.skills || []).map(skill => 
-                `<span class="badge bg-light text-dark me-1 mb-1">${escapeHtml(skill)}</span>`
-            ).join('') || '<span class="text-muted">No skills listed</span>';
+            const skills = applicant.skills || [];
+            if (Array.isArray(skills) && skills.length > 0) {
+                skillsEl.innerHTML = skills.map(skill => 
+                    `<span class="badge bg-light text-dark me-1 mb-1">${skill ? skill.toString().trim() : ''}</span>`
+                ).join('');
+            } else {
+                skillsEl.innerHTML = '<span class="text-muted">No skills listed</span>';
+            }
         }
 
-        // Languages
+        // Languages - use default if not provided
         const languagesEl = document.getElementById('languages');
         if (languagesEl) {
-            languagesEl.innerHTML = (applicant.languages || []).map(lang => 
-                `<span class="badge bg-info me-1 mb-1">${escapeHtml(lang)}</span>`
-            ).join('') || '<span class="text-muted">No languages listed</span>';
+            const languages = applicant.languages || ['English'];
+            if (Array.isArray(languages) && languages.length > 0) {
+                languagesEl.innerHTML = languages.map(lang => 
+                    `<span class="badge bg-info me-1 mb-1">${lang ? lang.toString().trim() : ''}</span>`
+                ).join('');
+            } else {
+                languagesEl.innerHTML = '<span class="badge bg-info me-1 mb-1">English</span>';
+            }
         }
 
-        // Work experience
-        this.loadWorkExperience(applicant.work_experience || []);
+        // Work experience - create basic entry if not provided
+        const experience = applicant.work_experience || applicant.experience;
+        if (typeof experience === 'string') {
+            // If experience is a string, create a basic structure
+            this.loadWorkExperience([{
+                position: 'Professional',
+                company: 'Various Companies',
+                description: experience,
+                start_date: 'N/A',
+                end_date: 'Present'
+            }]);
+        } else if (Array.isArray(experience)) {
+            this.loadWorkExperience(experience);
+        } else {
+            this.loadWorkExperience([]);
+        }
 
-        // Education
-        this.loadEducation(applicant.education || []);
+        // Education - create basic entry if not provided
+        const education = applicant.education || [];
+        if (Array.isArray(education) && education.length > 0) {
+            this.loadEducation(education.map(edu => {
+                if (typeof edu === 'string') {
+                    return {
+                        degree: edu,
+                        field: 'General Studies',
+                        institution: 'Educational Institution',
+                        graduation_year: 'N/A'
+                    };
+                }
+                return edu;
+            }));
+        } else {
+            this.loadEducation([]);
+        }
+        
+        console.log('loadApplicantOverview completed successfully');
+        } catch (error) {
+            console.error('Error in loadApplicantOverview:', error);
+            throw error;
+        }
     }
 
     // Load work experience
@@ -1050,9 +1093,9 @@ class TPRCApp {
         experienceEl.innerHTML = experience.map(exp => `
             <div class="timeline-item">
                 <div class="timeline-content">
-                    <h6>${escapeHtml(exp.position)} at ${escapeHtml(exp.company)}</h6>
-                    <p class="mb-1">${escapeHtml(exp.description || '')}</p>
-                    <small class="text-muted">${exp.start_date} - ${exp.end_date || 'Present'}</small>
+                    <h6>${exp.position || 'Position'} at ${exp.company || 'Company'}</h6>
+                    <p class="mb-1">${exp.description || ''}</p>
+                    <small class="text-muted">${exp.start_date || 'N/A'} - ${exp.end_date || 'Present'}</small>
                 </div>
             </div>
         `).join('');
@@ -1071,9 +1114,9 @@ class TPRCApp {
         educationEl.innerHTML = education.map(edu => `
             <div class="timeline-item">
                 <div class="timeline-content">
-                    <h6>${escapeHtml(edu.degree)} in ${escapeHtml(edu.field)}</h6>
-                    <p class="mb-1">${escapeHtml(edu.institution)}</p>
-                    <small class="text-muted">${edu.graduation_year}</small>
+                    <h6>${edu.degree || 'Degree'} in ${edu.field || 'Field of Study'}</h6>
+                    <p class="mb-1">${edu.institution || 'Institution'}</p>
+                    <small class="text-muted">${edu.graduation_year || 'N/A'}</small>
                 </div>
             </div>
         `).join('');
@@ -1094,50 +1137,12 @@ class TPRCApp {
         }
     }
 
-    async loadJobOrderDetails(jobOrderId) {
-        try {
-            const jobOrder = await this.hubspotAPI.getJobOrder(jobOrderId);
-            // Update job order details in the UI if elements exist
-            const jobTitleElement = document.getElementById('job-title');
-            const jobLocationElement = document.getElementById('job-location'); 
-            const jobTypeElement = document.getElementById('job-type');
-            
-            if (jobTitleElement) jobTitleElement.textContent = jobOrder.title || 'Job Order';
-            if (jobLocationElement) jobLocationElement.textContent = jobOrder.location || '';
-            if (jobTypeElement) jobTypeElement.textContent = jobOrder.position_type || '';
-            
-            return jobOrder;
-        } catch (error) {
-            console.error('Error loading job order details:', error);
-            throw error;
-        }
-    }
-
     // Additional methods would be implemented here for document management,
     // assessments, media, scorecard, etc.
 }
 
-// Global functions for candidate actions and modal handling
+// Global functions for candidate actions
 let selectedCandidateId = null;
-
-function openScorecardModal() {
-    const modal = new bootstrap.Modal(document.getElementById('scorecardModal'));
-    modal.show();
-}
-
-function loadJobOrderDetails(jobOrderId) {
-    if (window.tprcApp) {
-        return window.tprcApp.loadJobOrderDetails(jobOrderId);
-    }
-    console.error('TPRC App not initialized');
-}
-
-function loadApplicantDetails(applicantId) {
-    if (window.tprcApp) {
-        return window.tprcApp.loadApplicantDetails(applicantId);
-    }
-    console.error('TPRC App not initialized');
-}
 
 function showApprovalConfirmation(candidateId, candidateName) {
     selectedCandidateId = candidateId;
@@ -1152,36 +1157,57 @@ function scheduleInterview(candidateId) {
     alert('Interview scheduling functionality coming soon!');
 }
 
-async function rejectCandidate(candidateId, candidateName) {
-    // Show confirmation dialog
-    const confirmed = confirm(`Are you sure you want to reject ${candidateName}? This action cannot be undone.`);
+async function rejectCandidate(candidateId) {
+    if (!candidateId) return;
     
+    // Show confirmation dialog
+    const confirmed = confirm('Are you sure you want to reject this candidate? This action will trigger the rejection workflow.');
     if (!confirmed) return;
     
     try {
-        const reason = prompt('Please provide a reason for rejection (optional):') || 'Rejected via Client Portal';
+        // Get current job order ID
+        const urlParams = new URLSearchParams(window.location.search);
+        const jobOrderId = urlParams.get('id');
         
-        // Call HubSpot API to reject candidate
-        const hubspotAPI = new HubSpotAPI();
-        const response = await hubspotAPI.submitCandidateAction(candidateId, {
-            actionType: 'reject',
-            reason: reason,
-            notes: `Rejected by client on ${new Date().toLocaleDateString()}`
+        if (!jobOrderId) {
+            throw new Error('Job order ID not found');
+        }
+        
+        // Call API to reject candidate using custom object endpoint
+        const response = await fetch(`/api/hubspot/objects/2-184526441/${candidateId}/actions`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${localStorage.getItem('tprc_token')}`
+            },
+            body: JSON.stringify({
+                action: 'reject',
+                pipeline_stage: '1076100933',
+                workflow_id: '2509546994',
+                reason: 'Not suitable for the position',
+                notes: 'Rejected via client portal'
+            })
         });
         
-        if (response.success) {
-            // Show success message  
-            showAlert('success', 'Candidate rejected successfully! Client Reject workflow has been triggered.');
-            
-            // Refresh the page to show updated status
-            window.location.reload();
-        } else {
-            throw new Error(response.message || 'Failed to reject candidate');
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.message || 'Failed to reject candidate');
+        }
+        
+        const result = await response.json();
+        
+        // Show success message
+        showAlert('success', `Candidate rejected successfully! ${result.workflow_triggered ? 'Rejection workflow triggered.' : ''}`);
+        
+        // Refresh candidates list
+        if (window.tprcApp) {
+            const candidates = await window.tprcApp.hubspotAPI.getCandidates(jobOrderId);
+            window.tprcApp.renderCandidates(candidates);
         }
         
     } catch (error) {
         console.error('Error rejecting candidate:', error);
-        alert('Failed to reject candidate: ' + error.message);
+        showAlert('danger', 'Failed to reject candidate: ' + error.message);
     }
 }
 
@@ -1205,16 +1231,26 @@ document.addEventListener('DOMContentLoaded', function() {
                     throw new Error('Job order ID not found');
                 }
                 
-                // Call HubSpot API to approve candidate
-                const hubspotAPI = new HubSpotAPI();
-                const response = await hubspotAPI.submitCandidateAction(selectedCandidateId, {
-                    actionType: 'approve',
-                    reason: 'Approved via Client Portal',
-                    notes: `Approved by client on ${new Date().toLocaleDateString()}`
+                // Call API to approve candidate using custom object endpoint
+                const response = await fetch(`/api/hubspot/objects/2-184526441/${selectedCandidateId}/actions`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${localStorage.getItem('tprc_token')}`
+                    },
+                    body: JSON.stringify({
+                        action: 'approve',
+                        pipeline_stage: '1530375619',
+                        workflow_id: '2509546972',
+                        applicantId: selectedCandidateId,
+                        reason: 'Approved by client',
+                        notes: 'Approved via client portal'
+                    })
                 });
                 
-                if (!response.success) {
-                    throw new Error(response.message || 'Failed to approve candidate');
+                if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.message || 'Failed to approve candidate');
                 }
                 
                 // Success - close modal and refresh candidates
@@ -1222,7 +1258,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 modal.hide();
                 
                 // Show success message
-                showAlert('success', 'Candidate approved successfully! Client Approve workflow has been triggered.');
+                const result = await response.json();
+                showAlert('success', `Candidate approved successfully! ${result.workflow_triggered ? 'Approval workflow triggered.' : 'Status updated to "Selected".'}`);
                 
                 // Refresh candidates list
                 if (window.tprcApp) {
