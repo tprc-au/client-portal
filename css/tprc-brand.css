@@ -14,8 +14,8 @@
     --tprc-success-dark: rgb(20, 108, 67);
     --tprc-danger: #FED7D7;
     --tprc-danger-dark: #FBB6CE;
-    --tprc-info: #BEE3F8;
-    --tprc-info-dark: #90CDF4;
+    --tprc-info: #E2E8F0;
+    --tprc-info-dark: #CBD5E0;
     --tprc-warning: #9F7AEA;
     --tprc-light: #F7FAFC;
     --tprc-dark: #1A202C;
@@ -60,6 +60,18 @@
 
 .text-tprc-muted {
     color: var(--tprc-muted) !important;
+}
+
+.tprc-info {
+    color: var(--tprc-info) !important;
+}
+
+.text-tprc-info {
+    color: var(--tprc-info) !important;
+}
+
+.bg-tprc-info {
+    background-color: var(--tprc-info) !important;
 }
 
 /* Brand Buttons */
@@ -550,6 +562,7 @@ body, html {
 }
 
 .job-order-page .card-body {
+    background-color: var(--tprc-light) !important;
     color: var(--tprc-dark);
 }
 

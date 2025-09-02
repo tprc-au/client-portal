@@ -92,8 +92,8 @@ html, body {
 }
 
 .table thead th {
-    background: #718096;
-    color: white;
+    background: var(--tprc-light);
+    color: var(--tprc-dark);
     font-weight: 600;
     text-transform: uppercase;
     font-size: 0.8rem;
@@ -149,31 +149,29 @@ html, body {
 }
 
 /* Candidate Cards */
-.candidate-card {
-    border: none;
-    border-radius: 1rem;
-    transition: all 0.3s ease;
-    margin-bottom: 1.5rem;
-    background: white;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
-}
-
-.candidate-card:hover {
-    transform: translateY(-3px);
-    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+/* Candidate Table */
+.candidate-row:hover {
+    background-color: #f8f9fa;
 }
 
 .candidate-avatar {
-    width: 80px;
-    height: 80px;
-    border-radius: 50%;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: white;
-    font-size: 2rem;
-    margin: 0 auto 1rem;
+    color: #6c757d;
+    font-size: 1.5rem;
+}
+
+.skills-container .badge {
+    font-size: 0.75rem;
+    font-weight: normal;
+}
+
+.table-responsive {
+    box-shadow: 0 0 20px rgba(0, 0, 0, 0.1);
+}
+
+.table thead th {
+    border-bottom: 2px solid #dee2e6;
+    font-weight: 600;
+    color: #495057;
 }
 
 .skill-tag {

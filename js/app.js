@@ -743,47 +743,90 @@ class TPRCApp {
 
         if (candidates.length === 0) {
             candidatesList.innerHTML = `
-                <div class="text-center py-4">
-                    <i class="fas fa-users fa-2x text-muted mb-2"></i>
-                    <p class="mb-0">No candidates available for this job order</p>
-                </div>
+                <tr>
+                    <td colspan="7" class="text-center py-4">
+                        <i class="fas fa-users fa-2x text-muted mb-2"></i>
+                        <p class="mb-0">No candidates available for this job order</p>
+                    </td>
+                </tr>
             `;
             return;
         }
 
         candidatesList.innerHTML = candidates.map(candidate => `
-            <div class="candidate-card card mb-3">
-                <div class="card-body">
-                    <div class="row align-items-center">
-                        <div class="col-md-2 text-center">
-                            <div class="candidate-avatar mb-2">
-                                <i class="fas fa-user"></i>
-                            </div>
-                            <span class="badge bg-${this.getStatusColor(candidate.status)}">${candidate.status}</span>
+            <tr class="candidate-row">
+                <td>
+                    <div class="d-flex align-items-center">
+                        <div class="candidate-avatar me-3">
+                            <i class="fas fa-user-circle fa-2x text-muted"></i>
                         </div>
-                        <div class="col-md-6">
-                            <h6 class="mb-1">${escapeHtml(candidate.name)}</h6>
-                            <p class="text-muted mb-2">
-                                <i class="fas fa-birthday-cake me-1"></i>${candidate.age} years, 
-                                <i class="fas fa-map-marker-alt me-1"></i>${escapeHtml(candidate.location)}
-                            </p>
-                            <div class="skills">
-                                ${(candidate.skills || []).map(skill => 
-                                    `<span class="skill-tag">${escapeHtml(skill)}</span>`
-                                ).join('')}
-                            </div>
-                        </div>
-                        <div class="col-md-4">
-                            <div class="action-btn-group">
-                                <a href="applicant.html?id=${candidate.id}&jobOrderId=${new URLSearchParams(window.location.search).get('id') || ''}" class="btn btn-outline-info btn-sm">
-                                    <i class="fas fa-eye me-1"></i>View Profile
-                                </a>
-                            </div>
+                        <div>
+                            <h6 class="mb-0">${escapeHtml(candidate.name)}</h6>
+                            <small class="text-muted">${escapeHtml(candidate.email || '')}</small>
                         </div>
                     </div>
-                </div>
-            </div>
+                </td>
+                <td>
+                    <span class="text-muted">${candidate.age || '-'}</span>
+                </td>
+                <td>
+                    <span class="text-muted">
+                        <i class="fas fa-map-marker-alt me-1"></i>${escapeHtml(candidate.location || '-')}
+                    </span>
+                </td>
+                <td>
+                    <div class="skills-container">
+                        ${(candidate.skills || []).slice(0, 3).map(skill => 
+                            `<span class="badge bg-light text-dark me-1 mb-1">${escapeHtml(skill)}</span>`
+                        ).join('')}
+                        ${(candidate.skills || []).length > 3 ? `<span class="badge bg-secondary">+${(candidate.skills || []).length - 3}</span>` : ''}
+                    </div>
+                </td>
+                <td>
+                    <div class="association-labels">
+                        ${(candidate.association_labels || ['Recommended']).map(label => {
+                            const badgeClass = this.getLabelBadgeClass(label);
+                            return `<span class="badge ${badgeClass} me-1">${escapeHtml(label)}</span>`;
+                        }).join('')}
+                    </div>
+                </td>
+                <td>
+                    <span class="badge bg-${this.getApplicationStatusColor(candidate.application_status)}">${candidate.application_status || 'Active'}</span>
+                </td>
+                <td>
+                    <div class="btn-group btn-group-sm" role="group">
+                        <a href="applicant.html?id=${candidate.application_id || candidate.id}&jobOrderId=${new URLSearchParams(window.location.search).get('id') || ''}" 
+                           class="btn btn-outline-primary btn-sm">
+                            <i class="fas fa-eye me-1"></i>View
+                        </a>
+                    </div>
+                </td>
+            </tr>
         `).join('');
+    }
+
+    // Get badge class for association labels
+    getLabelBadgeClass(label) {
+        const lowerLabel = (label || '').toLowerCase();
+        switch (lowerLabel) {
+            case 'selected': return 'bg-success';
+            case 'rejected': return 'bg-danger';
+            case 'recommended': return 'bg-primary';
+            case 'reserved': return 'bg-warning';
+            case 'interviewing': return 'bg-info';
+            default: return 'bg-secondary';
+        }
+    }
+
+    // Get color for application status
+    getApplicationStatusColor(status) {
+        const lowerStatus = (status || '').toLowerCase();
+        switch (lowerStatus) {
+            case 'active': return 'success';
+            case 'issues': return 'warning';
+            case 'inactive': return 'danger';
+            default: return 'success'; // Default to Active
+        }
     }
 
     // Filter job orders

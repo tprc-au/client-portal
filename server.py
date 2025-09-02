@@ -10,6 +10,8 @@ import logging
 from datetime import datetime, timedelta
 from functools import wraps
 from typing import Dict, List, Optional, Any
+import psycopg2
+from psycopg2.extras import RealDictCursor
 
 import requests
 from flask import Flask, request, jsonify, send_from_directory, session
@@ -35,6 +37,70 @@ HUBSPOT_BASE_URL = 'https://api.hubapi.com'
 UPLOAD_FOLDER = 'uploads'
 MAX_CONTENT_LENGTH = 10 * 1024 * 1024  # 10MB max file size
 
+# Email whitelist for access restriction
+ALLOWED_EMAILS = ['tim.schibli@tprc.com.au']
+
+# PostgreSQL Database Configuration
+DATABASE_URL = os.getenv('DATABASE_URL')
+
+
+def init_database():
+    """Initialize database tables for user management"""
+    if not DATABASE_URL:
+        logger.warning("No DATABASE_URL found, using static email whitelist")
+        return
+    
+    try:
+        conn = psycopg2.connect(DATABASE_URL)
+        cur = conn.cursor()
+        
+        # Create authorized_users table
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS authorized_users (
+                id SERIAL PRIMARY KEY,
+                email VARCHAR(255) UNIQUE NOT NULL,
+                name VARCHAR(255),
+                company_name VARCHAR(255),
+                is_active BOOLEAN DEFAULT TRUE,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+        
+        # Insert default authorized user
+        cur.execute("""
+            INSERT INTO authorized_users (email, name, company_name) 
+            VALUES (%s, %s, %s) 
+            ON CONFLICT (email) DO NOTHING
+        """, ('tim.schibli@tprc.com.au', 'Tim Schibli', 'TPRC'))
+        
+        conn.commit()
+        cur.close()
+        conn.close()
+        logger.info("Database initialized successfully")
+    except Exception as e:
+        logger.error(f"Database initialization failed: {e}")
+
+
+def get_authorized_emails():
+    """Get list of authorized emails from database or fallback to static list"""
+    if not DATABASE_URL:
+        return ALLOWED_EMAILS
+    
+    try:
+        conn = psycopg2.connect(DATABASE_URL)
+        cur = conn.cursor(cursor_factory=RealDictCursor)
+        
+        cur.execute("SELECT email FROM authorized_users WHERE is_active = TRUE")
+        emails = [row['email'] for row in cur.fetchall()]
+        
+        cur.close()
+        conn.close()
+        return emails if emails else ALLOWED_EMAILS
+    except Exception as e:
+        logger.error(f"Error fetching authorized emails: {e}")
+        return ALLOWED_EMAILS
+
 # Production environment configuration
 ENVIRONMENT = os.getenv('ENVIRONMENT', 'development')
 IS_PRODUCTION = ENVIRONMENT.lower() == 'production'
@@ -58,6 +124,9 @@ app.config.update(UPLOAD_FOLDER=UPLOAD_FOLDER,
 # Ensure upload directory exists
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
+# Initialize database
+init_database()
+
 
 # Health check endpoint for deployment
 @app.route('/health')
@@ -70,265 +139,23 @@ def health_check():
     }), 200
 
 
-# Demo data functions
-def get_demo_user_data(user_id, company_id):
-    """Return demo user data for testing"""
-    demo_users = {
-        'demo_user_001': {
-            'user': {
-                'id': 'demo_user_001',
-                'name': 'Demo Client',
-                'email': 'demo@tprc.com'
-            },
-            'company': {
-                'id': 'demo_company_001',
-                'name': 'TPRC Demo Company'
-            }
-        },
-        'demo_user_002': {
-            'user': {
-                'id': 'demo_user_002',
-                'name': 'Sarah Wilson',
-                'email': 'client@techcorp.com'
-            },
-            'company': {
-                'id': 'demo_company_002',
-                'name': 'TechCorp Solutions'
-            }
-        }
-    }
-    return demo_users.get(user_id, demo_users['demo_user_001'])
 
 
-def get_demo_dashboard_stats(company_id):
-    """Return demo dashboard statistics"""
-    return {
-        'active_jobs': 5,
-        'available_candidates': 23,
-        'pending_reviews': 8,
-        'selections_made': 12
-    }
 
 
-def get_demo_job_orders(company_id, filters=None):
-    """Return demo job orders"""
-    job_orders = [{
-        'id': 'job_001',
-        'title': 'Senior Python Developer',
-        'reference': 'TPR-2025-001',
-        'position_type': 'Full-time',
-        'location': 'Sydney, Australia',
-        'status': 'Active',
-        'created_date': '2025-01-15T00:00:00Z',
-        'candidate_count': 8
-    }, {
-        'id': 'job_002',
-        'title': 'DevOps Engineer',
-        'reference': 'TPR-2025-002',
-        'position_type': 'Contract',
-        'location': 'Melbourne, Australia',
-        'status': 'Active',
-        'created_date': '2025-01-20T00:00:00Z',
-        'candidate_count': 5
-    }, {
-        'id': 'job_003',
-        'title': 'Frontend React Developer',
-        'reference': 'TPR-2025-003',
-        'position_type': 'Full-time',
-        'location': 'Brisbane, Australia',
-        'status': 'On Hold',
-        'created_date': '2025-01-10T00:00:00Z',
-        'candidate_count': 12
-    }]
-
-    # Apply filters if provided
-    if filters:
-        if 'search' in filters and filters['search']:
-            search_term = filters['search'].lower()
-            job_orders = [
-                job for job in job_orders
-                if search_term in job['title'].lower()
-            ]
-        if 'status' in filters and filters['status']:
-            job_orders = [
-                job for job in job_orders
-                if job['status'].lower() == filters['status'].lower()
-            ]
-
-    return job_orders
 
 
-def get_demo_job_order_details(job_order_id):
-    """Return demo job order details"""
-    job_details = {
-        'job_001': {
-            'id':
-            'job_001',
-            'title':
-            'Senior Python Developer',
-            'description':
-            'We are looking for an experienced Python developer to join our growing team. The ideal candidate will have strong experience with Django, Flask, and cloud technologies.',
-            'position_type':
-            'Full-time',
-            'location':
-            'Sydney, Australia',
-            'status':
-            'Active',
-            'created_date':
-            '2025-01-15T00:00:00Z',
-            'deadline':
-            '2025-03-15T00:00:00Z',
-            'essential_requirements': [
-                '5+ years Python development experience',
-                'Experience with Django or Flask',
-                'Strong knowledge of databases (PostgreSQL, MySQL)',
-                'Experience with REST APIs', 'Git version control'
-            ],
-            'preferred_requirements': [
-                'AWS/Azure cloud experience', 'Docker and containerization',
-                'CI/CD pipeline experience', 'Agile/Scrum methodology',
-                'Team leadership experience'
-            ],
-            'salary_range':
-            '$90,000 - $120,000 AUD',
-            'benefits':
-            'Health insurance, flexible working hours, professional development budget'
-        }
-    }
-    return job_details.get(job_order_id, job_details['job_001'])
 
 
-def get_demo_candidates(job_order_id, filters=None):
-    """Return demo candidates for a job order using real HubSpot contact IDs"""
-    candidates = [
-        {
-            'id': '123818032571',  # Shane Mcdonnell - real HubSpot contact
-            'name': 'Shane Mcdonnell',
-            'age': 32,
-            'location': 'Sydney, NSW',
-            'status': 'pending_review',
-            'skills': ['Python', 'Django', 'PostgreSQL', 'AWS', 'Docker']
-        },
-        {
-            'id': '123818032572',  # Joaquin Gonzales - real HubSpot contact
-            'name': 'Joaquin Gonzales',
-            'age': 28,
-            'location': 'Melbourne, VIC',
-            'status': 'approved',
-            'skills': ['Python', 'Flask', 'React', 'MongoDB', 'CI/CD']
-        },
-        {
-            'id': '123818032575',  # John Smith - real HubSpot contact
-            'name': 'John Smith',
-            'age': 35,
-            'location': 'Brisbane, QLD',
-            'status': 'interviewed',
-            'skills':
-            ['Python', 'FastAPI', 'PostgreSQL', 'Azure', 'Kubernetes']
-        }
-    ]
-
-    # Apply filters if provided
-    if filters:
-        if 'search' in filters and filters['search']:
-            search_term = filters['search'].lower()
-            candidates = [
-                c for c in candidates if search_term in c['name'].lower()
-            ]
-        if 'status' in filters and filters['status']:
-            candidates = [
-                c for c in candidates if c['status'] == filters['status']
-            ]
-
-    return candidates
 
 
-def get_demo_candidate_details(candidate_id):
-    """Return demo candidate details using real HubSpot contact IDs"""
-    candidate_details = {
-        '123818032571': {  # Shane Mcdonnell
-            'id':
-            '123818032571',
-            'first_name':
-            'Shane',
-            'last_name':
-            'Mcdonnell',
-            'email':
-            'shanem@hutnorsales.com.au',
-            'phone':
-            '+61 412 345 678',
-            'age':
-            '32',
-            'location':
-            'Sydney, NSW',
-            'status':
-            'pending_review',
-            'summary':
-            'Experienced Python developer with 8 years in web development. Strong background in Django, cloud technologies, and team leadership. Passionate about clean code and agile methodologies.'
-        },
-        '123818032572': {  # Joaquin Gonzales
-            'id':
-            '123818032572',
-            'first_name':
-            'Joaquin',
-            'last_name':
-            'Gonzales',
-            'email':
-            'joaquin.gonzales@email.com',
-            'phone':
-            '+61 423 456 789',
-            'age':
-            '28',
-            'location':
-            'Melbourne, VIC',
-            'status':
-            'approved',
-            'summary':
-            'Full-stack developer with expertise in Python, Flask, and React. Strong problem-solving skills and experience with CI/CD pipelines.'
-        },
-        '123818032575': {  # John Smith
-            'id':
-            '123818032575',
-            'first_name':
-            'John',
-            'last_name':
-            'Smith',
-            'email':
-            'john.smith@ventoragroup.com.au',
-            'phone':
-            '+61 434 567 890',
-            'age':
-            '35',
-            'location':
-            'Brisbane, QLD',
-            'status':
-            'interviewed',
-            'summary':
-            'Senior developer with extensive experience in FastAPI, PostgreSQL, and Azure cloud services. Team leader with proven track record.'
-        }
-    }
-    # Return the first candidate as default if ID not found
-    return candidate_details.get(candidate_id,
-                                 candidate_details['123818032571'])
 
 
-def get_demo_recent_activity(company_id, limit=10):
-    """Return demo recent activity"""
-    activities = [{
-        'type': 'candidate_reviewed',
-        'description':
-        'Michael Chen profile reviewed for Python Developer role',
-        'timestamp': '2025-01-28T10:30:00Z'
-    }, {
-        'type': 'interview_scheduled',
-        'description': 'Interview scheduled with Emma Thompson',
-        'timestamp': '2025-01-27T15:45:00Z'
-    }, {
-        'type': 'document_uploaded',
-        'description': 'Sponsorship agreement uploaded for TechCorp Solutions',
-        'timestamp': '2025-01-26T09:15:00Z'
-    }]
-    return activities[:limit]
+
+
+
+
+
 
 
 # HubSpot API Client
@@ -413,119 +240,107 @@ class HubSpotClient:
     def get_job_orders_for_company(self,
                                    company_id: str,
                                    filters: Dict = None) -> List[Dict]:
-        """Get job orders associated with a specific company from HubSpot"""
+        """Get job orders (deals) associated with a specific company from HubSpot"""
         try:
-            # First, try to get job orders associated with the company via associations API
-            associations_url = f'/crm/v4/objects/companies/{company_id}/associations/2-184526443'
+            # Get company details first to use for filtering
+            company_response = self.get_company_by_id(company_id)
+            company_name = company_response.get('properties', {}).get('name', '')
+            logger.info(f"Looking for job orders for company: {company_name} (ID: {company_id})")
+
+            # Use custom job order objects - get job orders associated with the company
             try:
-                associations_response = self.make_request(
-                    'GET', associations_url)
+                # First try to get job orders associated with this company
+                associations_url = f'/crm/v4/objects/companies/{company_id}/associations/2-44956344'
+                associations_response = self.make_request('GET', associations_url)
                 job_order_ids = [
                     result['toObjectId']
                     for result in associations_response.get('results', [])
                 ]
 
                 if job_order_ids:
-                    # Get the specific job orders by their IDs
+                    logger.info(f"Found {len(job_order_ids)} associated job orders via associations API")
+                    job_orders = []
                     properties = [
                         'job_order_title', 'role_description', 'hs_createdate',
-                        'employment_status', 'total_applicants'
+                        'employment_status', 'total_applicants', 'company_name', 'company_id'
                     ]
-                    job_orders = []
 
                     for job_id in job_order_ids:
                         try:
                             params = {'properties': ','.join(properties)}
                             job_response = self.make_request(
                                 'GET',
-                                f'/crm/v3/objects/2-184526443/{job_id}',
+                                f'/crm/v3/objects/2-44956344/{job_id}',
                                 params=params)
                             formatted_job = self.format_job_order(job_response)
                             formatted_job['company_id'] = company_id
                             job_orders.append(formatted_job)
                         except Exception as e:
-                            logger.warning(
-                                f"Error fetching job order {job_id}: {e}")
+                            logger.warning(f"Error fetching job order {job_id}: {e}")
                             continue
 
                     if job_orders:
-                        logger.info(
-                            f"Retrieved {len(job_orders)} company-specific job orders from HubSpot"
-                        )
+                        logger.info(f"Retrieved {len(job_orders)} job orders via associations")
                         return job_orders
 
             except Exception as e:
-                logger.warning(
-                    f"Could not fetch job order associations for company {company_id}: {e}"
-                )
+                logger.info(f"Job order associations API not available: {e}")
 
-            # Fallback: Use search with company name filter for now
-            # This is a workaround until proper associations are set up
-            company_response = self.get_company_by_id(company_id)
-            company_name = company_response.get('properties',
-                                                {}).get('name', '')
+            # Method 2: Get all job orders and filter by company
+            logger.info("Trying to get all job orders and filter by company")
+            properties = [
+                'job_order_title', 'role_description', 'hs_createdate',
+                'employment_status', 'total_applicants', 'company_name', 'company_id'
+            ]
+            params = {'properties': ','.join(properties), 'limit': 100}
+            response = self.make_request('GET', '/crm/v3/objects/2-44956344', params=params)
 
-            if company_name and 'Aussie Pies' in company_name:
-                # Get all job orders and filter for ones that mention the company
-                properties = [
-                    'job_order_title', 'role_description', 'hs_createdate',
-                    'employment_status', 'total_applicants'
-                ]
-                params = {'properties': ','.join(properties), 'limit': 100}
-                response = self.make_request('GET',
-                                             '/crm/v3/objects/2-184526443',
-                                             params=params)
+            job_orders = []
+            all_jobs = response.get('results', [])
+            logger.info(f"Found {len(all_jobs)} total job orders in HubSpot")
 
-                job_orders = []
-                for job in response.get('results', []):
-                    job_title = job.get('properties',
-                                        {}).get('job_order_title', '')
-                    # Filter to only show jobs that mention the company name
-                    if 'Aussie Pies' in job_title or company_name.lower(
-                    ) in job_title.lower():
-                        formatted_job = self.format_job_order(job)
-                        formatted_job['company_id'] = company_id
-                        job_orders.append(formatted_job)
+            for job in all_jobs:
+                props = job.get('properties', {})
+                job_title = props.get('job_order_title', '')
+                job_company_name = props.get('company_name', '')
+                job_company_id = props.get('company_id', '')
+                
+                # Multiple filtering criteria
+                is_match = False
+                if job_company_id == company_id:
+                    is_match = True
+                    logger.info(f"Job matched by company_id: {job_title}")
+                elif company_name and job_company_name and company_name.lower() in job_company_name.lower():
+                    is_match = True
+                    logger.info(f"Job matched by company name: {job_title}")
+                elif company_name and job_title and company_name.lower() in job_title.lower():
+                    is_match = True
+                    logger.info(f"Job matched by title containing company name: {job_title}")
 
-                if job_orders:
-                    logger.info(
-                        f"Retrieved {len(job_orders)} company-filtered job orders from HubSpot"
-                    )
-                    return job_orders
+                if is_match:
+                    formatted_job = self.format_job_order(job)
+                    formatted_job['company_id'] = company_id
+                    job_orders.append(formatted_job)
+
+            if job_orders:
+                logger.info(f"Retrieved {len(job_orders)} deals as job orders")
+                return job_orders
+            else:
+                logger.warning(f"No deals found for company {company_name} ({company_id})")
 
         except Exception as e:
-            logger.error(f"Error fetching job orders: {e}")
+            logger.error(f"Error fetching deals: {e}")
 
-        # Return demo data filtered by company
-        logger.info(f"Using demo job orders data for company {company_id}")
-        return [{
-            'id': 'demo-1',
-            'title': 'Senior Chef',
-            'position_type': 'Full-time',
-            'location': 'Perth, Australia',
-            'status': 'Active',
-            'created_date': '2025-01-15',
-            'deadline': '2025-02-15',
-            'candidates_count': 0,
-            'new_applications': 0,
-            'company_id': company_id
-        }, {
-            'id': 'demo-2',
-            'title': 'Kitchen Manager',
-            'position_type': 'Full-time',
-            'location': 'Perth, Australia',
-            'status': 'Active',
-            'created_date': '2025-01-20',
-            'deadline': '2025-02-20',
-            'candidates_count': 0,
-            'new_applications': 0,
-            'company_id': company_id
-        }]
+        # If no real data found, return empty list
+        logger.info(f"No job orders found for company {company_id}")
+        return []
+
+
 
     def get_job_order_by_id(self, job_order_id: str) -> Dict:
         """Get specific job order details"""
         try:
-            # Use the correct custom object ID for job orders
+            # Use custom job order objects
             properties = [
                 'job_order_title', 'role_description', 'hs_createdate',
                 'employment_status', 'total_applicants'
@@ -533,7 +348,7 @@ class HubSpotClient:
             params = {'properties': ','.join(properties)}
             response = self.make_request(
                 'GET',
-                f'/crm/v3/objects/2-184526443/{job_order_id}',
+                f'/crm/v3/objects/2-44956344/{job_order_id}',
                 params=params)
             return self.format_job_order(response)
         except Exception as e:
@@ -546,102 +361,169 @@ class HubSpotClient:
         """Get candidates associated with a job order"""
         try:
             # Try to get applications associated with the job order via associations API
-            associations_url = f'/crm/v4/objects/2-184526443/{job_order_id}/associations/2-184526441'
+            associations_url = f'/crm/v4/objects/2-44956344/{job_order_id}/associations/2-44963172'
             try:
                 associations_response = self.make_request(
                     'GET', associations_url)
-                application_ids = [
-                    result['toObjectId']
-                    for result in associations_response.get('results', [])
-                ]
+                
+                # Filter associations by "Recommended" label
+                recommended_applications = []
+                for result in associations_response.get('results', []):
+                    app_id = result.get('toObjectId')
+                    association_types = result.get('associationTypes', [])
+                    
+                    # Check if any association has the "Recommended" label
+                    has_recommended_label = any(
+                        (assoc_type.get('label') or '').lower() == 'recommended' 
+                        for assoc_type in association_types
+                    )
+                    
+                    if has_recommended_label:
+                        recommended_applications.append({
+                            'app_id': app_id,
+                            'labels': [at.get('label') for at in association_types if at.get('label')]
+                        })
+                        logger.info(f"Found recommended application {app_id} with labels: {[at.get('label') for at in association_types if at.get('label')]}")
 
-                if application_ids:
-                    # Get the specific applications by their IDs
-                    properties = [
-                        'application_name', 'application_status',
-                        'hs_createdate'
-                    ]
-                    candidates = []
+                logger.info(f"Found {len(recommended_applications)} recommended applications from {len(associations_response.get('results', []))} total associations for job order {job_order_id}")
 
-                    for app_id in application_ids:
+                if recommended_applications:
+                    # Get the application details for recommended applications only
+                    applications = []
+                    for app_info in recommended_applications:
+                        app_id = app_info['app_id']
                         try:
-                            params = {'properties': ','.join(properties)}
                             app_response = self.make_request(
+                                'GET', f'/crm/v3/objects/2-44963172/{app_id}')
+                            
+                            # Get associated contact data for each application
+                            contact_associations = self.make_request(
                                 'GET',
-                                f'/crm/v3/objects/2-184526441/{app_id}',
-                                params=params)
-                            candidate = self.format_candidate_from_application(
-                                app_response)
-                            candidates.append(candidate)
+                                f'/crm/v4/objects/2-44963172/{app_id}/associations/contacts'
+                            )
+                            contact_id = contact_associations.get(
+                                'results', [{}])[0].get('toObjectId')
+
+                            if contact_id:
+                                contact_response = self.make_request(
+                                    'GET',
+                                    f'/crm/v3/objects/contacts/{contact_id}')
+                                formatted_candidate = self.format_candidate(contact_response)
+                                # Add association label info (filtered to this job order only)
+                                job_specific_labels = []
+                                for result in associations_response.get('results', []):
+                                    if result.get('toObjectId') == app_id:
+                                        association_types = result.get('associationTypes', [])
+                                        job_specific_labels = [at.get('label') for at in association_types if at.get('label')]
+                                        break
+                                formatted_candidate['association_labels'] = job_specific_labels
+                                # Add application ID and properties
+                                formatted_candidate['application_id'] = app_id
+                                app_props = app_response.get('properties', {})
+                                formatted_candidate['application_status'] = app_props.get('application_status', self.determine_application_status(app_props))
+                                formatted_candidate['hs_pipeline_stage'] = app_props.get('hs_pipeline_stage', '')
+                                applications.append(formatted_candidate)
+                                logger.info(f"Added recommended candidate {contact_id} from application {app_id}")
+                            else:
+                                # Format application directly if no contact association
+                                formatted_candidate = self.format_candidate_from_application(app_response)
+                                # Add association label info (filtered to this job order only)
+                                job_specific_labels = []
+                                for result in associations_response.get('results', []):
+                                    if result.get('toObjectId') == app_id:
+                                        association_types = result.get('associationTypes', [])
+                                        job_specific_labels = [at.get('label') for at in association_types if at.get('label')]
+                                        break
+                                formatted_candidate['association_labels'] = job_specific_labels
+                                formatted_candidate['application_id'] = app_id
+                                app_props = app_response.get('properties', {})
+                                formatted_candidate['application_status'] = app_props.get('application_status', self.determine_application_status(app_props))
+                                applications.append(formatted_candidate)
+                                logger.info(f"Added recommended candidate from application {app_id} (no contact association)")
+
                         except Exception as e:
                             logger.warning(
-                                f"Error fetching application {app_id}: {e}")
+                                f"Error fetching recommended application {app_id}: {e}")
                             continue
 
-                    if candidates:
+                    if applications:
                         logger.info(
-                            f"Retrieved {len(candidates)} real applications from HubSpot for job order {job_order_id}"
+                            f"Retrieved {len(applications)} recommended applications from HubSpot for job order {job_order_id}"
                         )
-                        return candidates
+                        return applications
+                    else:
+                        logger.info(f"No recommended candidates found via associations for job order {job_order_id}")
+                else:
+                    logger.info(f"No applications with 'Recommended' label found for job order {job_order_id}")
 
             except Exception as e:
                 logger.warning(
                     f"Could not fetch application associations for job order {job_order_id}: {e}"
                 )
+                
+                # Alternative approach: search for applications that reference this job order
+                logger.info(f"Trying alternative search for applications referencing job order {job_order_id}")
+                try:
+                    # Search applications by job order reference
+                    search_payload = {
+                        "filterGroups": [{
+                            "filters": [{
+                                "propertyName": "job_order_id",
+                                "operator": "EQ", 
+                                "value": job_order_id
+                            }]
+                        }],
+                        "properties": ["application_status", "hs_pipeline_stage", "application_name"],
+                        "limit": 100
+                    }
+                    
+                    search_response = self.make_request(
+                        'POST', '/crm/v3/objects/2-44963172/search', data=search_payload)
+                    
+                    if search_response.get('results'):
+                        applications = []
+                        for app_data in search_response['results']:
+                            # Format all applications without filtering
+                            formatted_app = self.format_candidate_from_application(app_data)
+                            applications.append(formatted_app)
+                            logger.info(f"Found application {app_data['id']} via search")
+                        
+                        if applications:
+                            logger.info(f"Retrieved {len(applications)} applications via search for job order {job_order_id}")
+                            return applications
+                
+                except Exception as search_error:
+                    logger.warning(f"Alternative search also failed: {search_error}")
 
         except Exception as e:
             logger.error(
                 f"Error fetching candidates for job order {job_order_id}: {e}")
 
-        # Return demo candidates that match the job context
-        logger.info(f"Using demo candidates for job order {job_order_id}")
-        return [{
-            'id':
-            'demo-candidate-1',
-            'name':
-            'Sarah Johnson',
-            'email':
-            'sarah.johnson@email.com',
-            'status':
-            'pending_review',
-            'application_date':
-            '2025-01-25',
-            'age':
-            28,
-            'location':
-            'Perth, Australia',
-            'professional_summary':
-            'Experienced chef with 5 years in commercial kitchen management and Australian cuisine.',
-            'skills': [
-                'Kitchen Management', 'Food Safety', 'Team Leadership',
-                'Menu Planning'
-            ],
-            'job_order_id':
-            job_order_id
-        }, {
-            'id':
-            'demo-candidate-2',
-            'name':
-            'Michael Chen',
-            'email':
-            'michael.chen@email.com',
-            'status':
-            'approved',
-            'application_date':
-            '2025-01-23',
-            'age':
-            32,
-            'location':
-            'Perth, Australia',
-            'professional_summary':
-            'Senior kitchen manager specializing in food production and staff coordination.',
-            'skills': [
-                'Production Management', 'Inventory Control', 'Staff Training',
-                'Quality Assurance'
-            ],
-            'job_order_id':
-            job_order_id
-        }]
+        # Return empty list if no data found
+        logger.info(f"No candidates found for job order {job_order_id}")
+        return []
+
+    def format_contact_as_candidate(self, contact_data: Dict) -> Dict:
+        """Format contact data as a candidate for frontend"""
+        props = contact_data.get('properties', {})
+        first_name = props.get('firstname', '')
+        last_name = props.get('lastname', '')
+        full_name = f"{first_name} {last_name}".strip() or "Unknown Candidate"
+        
+        return {
+            'id': contact_data['id'],
+            'name': full_name,
+            'email': props.get('email', ''),
+            'phone': props.get('phone', ''),
+            'status': 'pending_review',  # Default status for HubSpot contacts
+            'application_date': props.get('createdate', ''),
+            'location': f"{props.get('city', '')}, {props.get('state', '')}".strip(', ') or 'Location Unknown',
+            'job_title': props.get('jobtitle', 'Not specified'),
+            'company': props.get('company', 'Not specified'),
+            'professional_summary': f"Contact from {props.get('company', 'external source')}",
+            'skills': [],  # HubSpot contacts don't have skills by default
+            'country': props.get('country', '')
+        }
 
     def format_candidate_from_application(self,
                                           application_data: Dict) -> Dict:
@@ -689,9 +571,11 @@ class HubSpotClient:
 
         return {
             'id': application_data['id'],
+            'application_id': application_data['id'],  # For consistency with other candidate data
             'name': candidate_name,
             'email': f"{safe_name}@email.com",
             'status': status,
+            'application_status': self.determine_application_status(props),
             'application_date': props.get('hs_createdate', ''),
             'age': age,
             'location': 'Perth, Australia',
@@ -764,8 +648,155 @@ class HubSpotClient:
             logger.error(f"Error submitting candidate action: {e}")
             raise
 
+    def update_association_label(self, candidate_id: str, job_order_id: str, label: str) -> Dict:
+        """Update association label between candidate/application and job order"""
+        try:
+            # First, find the application ID by searching for the candidate/job order association
+            # Get associations between the job order and applications
+            associations_response = self.make_request(
+                'GET',
+                f'/crm/v4/objects/2-44956344/{job_order_id}/associations/2-44963172',
+                params={'limit': 100}
+            )
+            
+            application_id = None
+            for association in associations_response.get('results', []):
+                app_id = association.get('toObjectId')
+                # Check if this application is for our candidate
+                try:
+                    app_response = self.make_request('GET', f'/crm/v3/objects/2-44963172/{app_id}')
+                    # Get associated contact for this application
+                    contact_associations = self.make_request(
+                        'GET',
+                        f'/crm/v4/objects/2-44963172/{app_id}/associations/contacts'
+                    )
+                    if contact_associations.get('results'):
+                        contact_id = contact_associations['results'][0].get('toObjectId')
+                        if contact_id == candidate_id:
+                            application_id = app_id
+                            break
+                except Exception as e:
+                    logger.warning(f"Error checking application {app_id}: {e}")
+                    continue
+            
+            if not application_id:
+                raise Exception(f"Could not find application for candidate {candidate_id} and job order {job_order_id}")
+            
+            logger.info(f"Found application ID {application_id} for candidate {candidate_id} and job order {job_order_id}")
+            
+            # Now update the association with the new label
+            # First get current association types
+            current_associations = self.make_request(
+                'GET',
+                f'/crm/v4/objects/2-44963172/{application_id}/associations/2-44956344',
+                params={'limit': 100}
+            )
+            
+            # Find the specific association to the job order
+            target_association = None
+            for association in current_associations.get('results', []):
+                if association.get('toObjectId') == job_order_id:
+                    target_association = association
+                    break
+            
+            if not target_association:
+                raise Exception(f"Could not find association between application {application_id} and job order {job_order_id}")
+            
+            # Get current association types/labels
+            current_types = target_association.get('associationTypes', [])
+            existing_labels = [at.get('label') for at in current_types if at.get('label')]
+            
+            logger.info(f"Current association labels: {existing_labels}")
+            
+            # Add the new label if it doesn't exist
+            if label not in existing_labels:
+                # Create new association with additional label
+                association_data = {
+                    "inputs": [{
+                        "from": {"id": application_id},
+                        "to": {"id": job_order_id},
+                        "types": [
+                            {"associationCategory": "HUBSPOT_DEFINED", "associationTypeId": 279},  # Application to Job Order
+                            {"associationCategory": "USER_DEFINED", "label": label}  # Add new label
+                        ]
+                    }]
+                }
+                
+                # First remove existing association
+                try:
+                    self.make_request(
+                        'DELETE',
+                        f'/crm/v4/objects/2-44963172/{application_id}/associations/2-44956344/{job_order_id}',
+                        params={'associationType': '279'}
+                    )
+                except Exception as delete_error:
+                    logger.warning(f"Could not delete existing association: {delete_error}")
+                
+                # Create new association with all labels
+                all_labels = list(set(existing_labels + [label]))  # Combine and deduplicate
+                association_types = [{"associationCategory": "HUBSPOT_DEFINED", "associationTypeId": 279}]
+                for lbl in all_labels:
+                    association_types.append({"associationCategory": "USER_DEFINED", "label": lbl})
+                
+                association_data["inputs"][0]["types"] = association_types
+                
+                response = self.make_request(
+                    'PUT',
+                    '/crm/v4/associations/2-44963172/2-44956344/batch/create',
+                    data=association_data
+                )
+                
+                logger.info(f"Successfully added association label '{label}' to candidate {candidate_id}")
+                return {
+                    'success': True,
+                    'message': f'Association label "{label}" added successfully',
+                    'labels': all_labels,
+                    'association_updated': True
+                }
+            else:
+                logger.info(f"Label '{label}' already exists for candidate {candidate_id}")
+                return {
+                    'success': True,
+                    'message': f'Association label "{label}" already exists',
+                    'labels': existing_labels,
+                    'association_updated': False
+                }
+                
+        except Exception as e:
+            logger.error(f"Error updating association label: {e}")
+            raise
+
+    def determine_application_status(self, app_properties: Dict) -> str:
+        """Determine application status based on HubSpot properties"""
+        # Check pipeline stage first
+        pipeline_stage = app_properties.get('hs_pipeline_stage', '')
+        
+        # Map common HubSpot pipeline stages to application status
+        if pipeline_stage in ['new', 'open', 'qualified', 'presentation_scheduled', 'decision_maker_bought-in']:
+            return 'Active'
+        elif pipeline_stage in ['closed_won', 'closed_lost']:
+            return 'Inactive'
+        elif pipeline_stage in ['appointment_scheduled', 'qualified_to_buy']:
+            return 'Issues'
+        
+        # Check for other status indicators
+        if app_properties.get('application_status'):
+            return app_properties.get('application_status')
+        
+        # Check lifecycle stage
+        lifecycle_stage = app_properties.get('lifecyclestage', '')
+        if lifecycle_stage in ['lead', 'marketingqualifiedlead', 'salesqualifiedlead']:
+            return 'Active'
+        elif lifecycle_stage in ['customer', 'evangelist']:
+            return 'Inactive'
+        elif lifecycle_stage in ['opportunity']:
+            return 'Issues'
+        
+        # Default to Active for new applications
+        return 'Active'
+
     def get_dashboard_stats(self, company_id: str) -> Dict:
-        """Get dashboard statistics for a company"""
+        """Get dashboard statistics for a company using recommended candidates only"""
         try:
             job_orders = self.get_job_orders_for_company(company_id)
 
@@ -783,14 +814,14 @@ class HubSpotClient:
                 0
             }
 
-            # Count candidates across all job orders
+            # Count recommended candidates across all job orders
             for job in job_orders:
-                candidates = self.get_candidates_for_job_order(job['id'])
-                stats['available_candidates'] += len(candidates)
+                recommended_candidates = self.get_candidates_for_job_order(job['id'])
+                stats['available_candidates'] += len(recommended_candidates)
                 stats['pending_reviews'] += len(
-                    [c for c in candidates if c['status'] == 'pending_review'])
+                    [c for c in recommended_candidates if c.get('status', '').lower() in ['pending_review', 'available']])
                 stats['selections_made'] += len(
-                    [c for c in candidates if c['status'] == 'selected'])
+                    [c for c in recommended_candidates if 'selected' in [label.lower() for label in c.get('association_labels', [])]])
 
             return stats
         except Exception as e:
@@ -929,8 +960,17 @@ class HubSpotClient:
 
     # Helper methods
     def format_job_order(self, job_data: Dict) -> Dict:
-        """Format job order data for frontend"""
+        """Format job order data for frontend with recommended candidate count"""
         props = job_data.get('properties', {})
+        
+        # Get recommended candidate count for this job order
+        try:
+            recommended_candidates = self.get_candidates_for_job_order(job_data['id'])
+            candidate_count = len(recommended_candidates)
+        except Exception as e:
+            logger.warning(f"Could not get recommended candidate count for job {job_data['id']}: {e}")
+            candidate_count = 0
+        
         return {
             'id':
             job_data['id'],
@@ -959,7 +999,7 @@ class HubSpotClient:
             'benefits':
             props.get('benefits', ''),
             'candidate_count':
-            int(props.get('total_applicants', 0))
+            candidate_count
         }
 
     def format_candidate(self, contact_data: Dict) -> Dict:
@@ -1094,7 +1134,7 @@ class HubSpotClient:
             try:
                 self.make_request(
                     'PATCH',
-                    f'/crm/v3/objects/2-184526441/{candidate_id}',
+                    f'/crm/v3/objects/2-44963172/{candidate_id}',
                     data=update_data)
                 logger.info(
                     f"Successfully updated candidate {candidate_id} status to 'Selected'"
@@ -1177,7 +1217,7 @@ class HubSpotClient:
             try:
                 self.make_request(
                     'PATCH',
-                    f'/crm/v3/objects/2-184526441/{candidate_id}',
+                    f'/crm/v3/objects/2-44963172/{candidate_id}',
                     data=update_data)
                 logger.info(
                     f"Successfully updated candidate {candidate_id} status to 'Rejected'"
@@ -1674,21 +1714,20 @@ def login():
         if not email or not password:
             return jsonify({'error': 'Email and password required'}), 400
 
-        # Demo credentials for testing (REMOVE IN PRODUCTION)
+        # Check email whitelist for access restriction
+        authorized_emails = get_authorized_emails()
+        if email not in authorized_emails:
+            logger.warning(f"Access denied for email: {email}")
+            return jsonify({'error': 'Access denied. Contact TPRC for portal access.'}), 403
+
+        # Demo credentials for testing (restricted to allowed emails)
         demo_users = {
-            'demo@tprc.com': {
-                'password': 'demo123',
-                'user_id': 'demo_user_001',
-                'company_id': 'demo_company_001',
-                'name': 'Demo Client',
-                'company_name': 'TPRC Demo Company'
-            },
-            'client@techcorp.com': {
-                'password': 'client123',
-                'user_id': 'demo_user_002',
-                'company_id': 'demo_company_002',
-                'name': 'Sarah Wilson',
-                'company_name': 'TechCorp Solutions'
+            'tim.schibli@tprc.com.au': {
+                'password': 'tprc2025',
+                'user_id': 'tim_schibli_001',
+                'company_id': '503464912',  # Real HubSpot company ID: Salsa Bar & Grill
+                'name': 'Tim Schibli',
+                'company_name': 'Salsa Bar & Grill'
             }
         }
 
@@ -1911,10 +1950,7 @@ def get_company_profile():
     try:
         company_id = request.company_id
 
-        # Check if this is a demo user
-        if company_id.startswith('demo_company_'):
-            demo_company = get_demo_company_profile(company_id)
-            return jsonify(demo_company)
+
 
         # Get company details from HubSpot
         company = hubspot_client.get_company_by_id(company_id)
@@ -2110,17 +2146,21 @@ def approve_candidate(job_order_id, candidate_id):
                 'message': 'Demo candidate approved successfully'
             })
 
-        # Approve candidate in HubSpot by updating association label
-        result = hubspot_client.approve_candidate(job_order_id, candidate_id)
-
-        # Log the approval activity
-        activity_data = {
-            'type': 'candidate_approved',
-            'description':
-            f'Candidate {candidate_id} approved for job order {job_order_id}',
-            'candidate_id': candidate_id
+        # Add "Selected" association label using HubSpot API
+        # candidate_id is actually the application ID (applicant_id in your example)
+        url = f"https://api.hubapi.com/crm/v3/objects/2-44963172/{candidate_id}/associations/2-44956344/{job_order_id}/Selected"
+        headers = {
+            "Authorization": f"Bearer {HUBSPOT_API_KEY}",
+            "Content-Type": "application/json",
         }
-        hubspot_client.create_activity_record(activity_data)
+        
+        response = requests.put(url, headers=headers)
+        
+        if response.status_code not in [200, 201, 204]:
+            logger.error(f"Failed to approve candidate. Status: {response.status_code}, Response: {response.text}")
+            raise Exception(f"Failed to update association: {response.text}")
+        
+        logger.info(f"Successfully added 'Selected' label to application {candidate_id} for job order {job_order_id}")
 
         return jsonify({
             'success': True,
@@ -2133,6 +2173,46 @@ def approve_candidate(job_order_id, candidate_id):
                         f'Failed to approve candidate: {str(e)}'}), 500
 
 
+@app.route(
+    '/api/hubspot/job-orders/<job_order_id>/candidates/<candidate_id>/reject',
+    methods=['POST'])
+@require_auth
+def reject_candidate(job_order_id, candidate_id):
+    try:
+        # Check if this is a demo user
+        if request.company_id.startswith('demo_company_'):
+            return jsonify({
+                'success': True,
+                'message': 'Demo candidate rejected successfully'
+            })
+
+        # Add "Rejected" association label using HubSpot API
+        # candidate_id is actually the application ID (applicant_id in your example)  
+        url = f"https://api.hubapi.com/crm/v3/objects/2-44963172/{candidate_id}/associations/2-44956344/{job_order_id}/Rejected"
+        headers = {
+            "Authorization": f"Bearer {HUBSPOT_API_KEY}",
+            "Content-Type": "application/json",
+        }
+        
+        response = requests.put(url, headers=headers)
+        
+        if response.status_code not in [200, 201, 204]:
+            logger.error(f"Failed to reject candidate. Status: {response.status_code}, Response: {response.text}")
+            raise Exception(f"Failed to update association: {response.text}")
+        
+        logger.info(f"Successfully added 'Rejected' label to application {candidate_id} for job order {job_order_id}")
+
+        return jsonify({
+            'success': True,
+            'message': 'Candidate rejected successfully',
+            'association_updated': True
+        })
+    except Exception as e:
+        logger.error(f"Error rejecting candidate: {e}")
+        return jsonify({'error':
+                        f'Failed to reject candidate: {str(e)}'}), 500
+
+
 # Candidate endpoints
 @app.route('/api/hubspot/candidates/<candidate_id>', methods=['GET'])
 @require_auth
@@ -2143,40 +2223,63 @@ def get_candidate(candidate_id):
             candidate = get_demo_candidate_details(candidate_id)
             return jsonify(candidate)
 
-        # First try to get as custom object (application record)
+        # First try to get as application custom object (using correct ID)
         try:
-            url = f"https://api.hubapi.com/crm/v3/objects/2-184526441/{candidate_id}"
-            headers = {"Authorization": f"Bearer {HUBSPOT_API_KEY}", "Content-Type": "application/json"}
-            response = requests.get(url, headers=headers)
+            application_response = hubspot_client.make_request('GET', f'/crm/v3/objects/2-44963172/{candidate_id}')
             
-            if response.status_code == 200:
-                application_data = response.json()
-                properties = application_data.get('properties', {})
+            if application_response:
+                properties = application_response.get('properties', {})
+                app.logger.info(f"Successfully fetched application {candidate_id}")
                 
-                app.logger.info(f"Successfully fetched custom object candidate {candidate_id}")
-                
-                # Step 2: Get associated Contact IDs
+                # Get associated Contact IDs
                 contact_data = {}
+                contact_associations = hubspot_client.make_request(
+                    'GET',
+                    f'/crm/v4/objects/2-44963172/{candidate_id}/associations/contacts'
+                )
+                
+                if contact_associations.get('results'):
+                    contact_id = contact_associations['results'][0].get('toObjectId')
+                    if contact_id:
+                        contact_response = hubspot_client.make_request(
+                            'GET',
+                            f'/crm/v3/objects/contacts/{contact_id}',
+                            params={'properties': ['firstname', 'lastname', 'email', 'phone', 'city', 'country', 'hs_persona']}
+                        )
+                        if contact_response:
+                            contact_data = contact_response.get('properties', {})
+                            app.logger.info(f"Fetched associated contact {contact_id} for application {candidate_id}")
+                
+                # Get association labels for specific job order if provided
+                association_labels = []
+                job_order_id = request.args.get('jobOrderId')
                 try:
-                    associations_url = f'https://api.hubapi.com/crm/v3/objects/2-184526441/{candidate_id}/associations/contacts'
-                    assoc_response = requests.get(associations_url, headers=headers)
-                    if assoc_response.status_code == 200:
-                        assoc_data = assoc_response.json()
-                        contact_ids = [assoc["id"] for assoc in assoc_data.get("results", [])]
-                        
-                        # Step 3: Fetch Contact details if available
-                        if contact_ids:
-                            contact_id = contact_ids[0]  # Use first associated contact
-                            contact_props = "firstname,lastname,email,phone,city,country,hs_persona"
-                            contact_url = f'https://api.hubapi.com/crm/v3/objects/contacts/{contact_id}?properties={contact_props}'
-                            contact_response = requests.get(contact_url, headers=headers)
-                            if contact_response.status_code == 200:
-                                contact_info = contact_response.json()
-                                contact_data = contact_info.get('properties', {})
-                                app.logger.info(f"Fetched associated contact {contact_id} for applicant {candidate_id}")
-                        
-                except Exception as e:
-                    app.logger.warning(f"Could not fetch associated contact for applicant {candidate_id}: {str(e)}")
+                    job_associations = hubspot_client.make_request(
+                        'GET', 
+                        f'/crm/v4/objects/2-44963172/{candidate_id}/associations/2-44956344'
+                    )
+                    if job_associations.get('results'):
+                        app.logger.info(f"Found {len(job_associations['results'])} job associations for application {candidate_id}")
+                        for assoc in job_associations['results']:
+                            assoc_job_id = assoc.get('toObjectId')
+                            association_types = assoc.get('associationTypes', [])
+                            labels = [at.get('label') for at in association_types if at.get('label')]
+                            app.logger.info(f"Association with job {assoc_job_id}: labels = {labels}")
+                            
+                            if job_order_id:
+                                # Only get labels for the specific job order
+                                app.logger.info(f"Comparing job IDs: assoc_job_id={assoc_job_id} (type: {type(assoc_job_id)}) vs job_order_id={job_order_id} (type: {type(job_order_id)})")
+                                if str(assoc_job_id) == str(job_order_id):
+                                    association_labels.extend(labels)
+                                    app.logger.info(f"Matched job order {job_order_id}, using labels: {labels}")
+                                    break
+                                else:
+                                    app.logger.info(f"No match: {str(assoc_job_id)} != {str(job_order_id)}")
+                            else:
+                                # If no specific job order, get all labels (fallback)
+                                association_labels.extend(labels)
+                except Exception as assoc_error:
+                    app.logger.warning(f"Could not fetch association labels for application {candidate_id}: {assoc_error}")
                 
                 # Format the application data for the frontend
                 skills_text = properties.get('candidate_skills', properties.get('skills', 'JavaScript,Python,React,Node.js'))
@@ -2188,6 +2291,7 @@ def get_candidate(candidate_id):
                 # Combine application data with contact data
                 candidate = {
                     'id': candidate_id,
+                    'application_id': candidate_id,
                     'first_name': contact_data.get('firstname') or properties.get('candidate_first_name', properties.get('firstname', '')),
                     'last_name': contact_data.get('lastname') or properties.get('candidate_last_name', properties.get('lastname', '')),
                     'email': contact_data.get('email') or properties.get('candidate_email', properties.get('email', '')),
@@ -2199,10 +2303,12 @@ def get_candidate(candidate_id):
                     'skills': skills_array,
                     'experience': properties.get('candidate_experience', properties.get('work_experience', '')),
                     'education': education_array,
-                    'created_date': properties.get('createdate', properties.get('hs_createdate', application_data.get('createdAt', ''))),
-                    'languages': properties.get('languages', '').split(',') if properties.get('languages') else []
+                    'created_date': properties.get('createdate', properties.get('hs_createdate', application_response.get('createdAt', ''))),
+                    'languages': properties.get('languages', '').split(',') if properties.get('languages') else [],
+                    'association_labels': list(set(association_labels)),  # Remove duplicates
+                    'application_status': hubspot_client.determine_application_status(properties)
                 }
-                logger.info(f"Successfully fetched custom object candidate {candidate_id}")
+                logger.info(f"Successfully fetched application {candidate_id} with contact data and association labels: {association_labels}")
                 return jsonify(candidate)
         except Exception as custom_obj_error:
             logger.info(f"Custom object fetch failed, trying as contact: {custom_obj_error}")
@@ -2229,6 +2335,48 @@ def get_candidate(candidate_id):
             'education': ['BS Computer Science', 'Full Stack Development Certification']
         }
         return jsonify(candidate)
+
+
+# Association Label Update endpoint
+@app.route('/api/hubspot/association-label/update', methods=['POST'])
+@require_auth
+def update_association_label():
+    try:
+        data = request.get_json()
+        candidate_id = data.get('candidateId')
+        job_order_id = data.get('jobOrderId')
+        action = data.get('action')
+        label = data.get('label')
+        
+        if not all([candidate_id, job_order_id, action, label]):
+            return jsonify({'error': 'Missing required parameters'}), 400
+        
+        logger.info(f"Updating association label: candidate={candidate_id}, job={job_order_id}, action={action}, label={label}")
+        
+        # Update association label in HubSpot
+        result = hubspot_client.update_association_label(candidate_id, job_order_id, label)
+        
+        # Log the activity
+        activity_data = {
+            'type': f'candidate_{action}',
+            'description': f'Candidate {candidate_id} {action}d for job order {job_order_id} with label "{label}"',
+            'candidate_id': candidate_id,
+            'job_order_id': job_order_id
+        }
+        try:
+            hubspot_client.create_activity_record(activity_data)
+        except Exception as activity_error:
+            logger.warning(f"Failed to create activity record: {activity_error}")
+        
+        return jsonify({
+            'success': True,
+            'message': f'Association label "{label}" updated successfully',
+            'result': result
+        })
+        
+    except Exception as e:
+        logger.error(f"Error updating association label: {e}")
+        return jsonify({'error': f'Failed to update association label: {str(e)}'}), 500
 
 
 # Candidate actions moved to parameterized route: /api/hubspot/candidates/<candidate_id>/actions
@@ -2404,7 +2552,7 @@ def save_candidate_scorecard(candidate_id):
 
 
 # Add new custom object endpoint
-@app.route('/api/hubspot/objects/2-184526441/<candidate_id>/actions',
+@app.route('/api/hubspot/objects/2-44963172/<candidate_id>/actions',
            methods=['POST'])
 @require_auth
 def submit_custom_object_action(candidate_id):
@@ -2413,6 +2561,7 @@ def submit_custom_object_action(candidate_id):
         action_data = request.get_json()
         action_type = action_data.get('action', action_data.get('actionType'))
 
+        logger.info(f"Raw action data received: {action_data}")
         logger.info(
             f"Processing {action_type} action for candidate {candidate_id}")
 
@@ -2432,24 +2581,48 @@ def submit_custom_object_action(candidate_id):
                 }
             }
         else:
-            # For interview or other actions
+            # For interview actions, only update the interview fields
             application_data = {
-                "properties": {
-                    "hs_pipeline_stage":
-                    action_data.get('pipeline_stage', 'interviewing'),
-                    "status":
-                    "Interviewing",
-                    "action_reason":
-                    action_data.get('reason', ''),
-                    "action_notes":
-                    action_data.get('notes', ''),
-                    "action_date":
-                    datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S')
-                }
+                "properties": {}
             }
+            
+            # Add interview-specific fields if action is interview
+            if action_type == 'interview':
+                logger.info(f"Processing interview data: {action_data}")
+                
+                # Convert date to Unix timestamp (milliseconds) - check both field name variations
+                interview_date = action_data.get('interviewDate') or action_data.get('interview_date')
+                if interview_date:
+                    try:
+                        from datetime import datetime
+                        date_obj = datetime.strptime(interview_date, '%Y-%m-%d')
+                        timestamp_ms = int(date_obj.timestamp() * 1000)
+                        
+                        application_data["properties"]["desired_client_interview_date"] = timestamp_ms
+                        logger.info(f"Setting interview date timestamp: {timestamp_ms} for date: {interview_date}")
+                    except ValueError as e:
+                        logger.error(f"Error parsing interview date {interview_date}: {e}")
+                
+                # Set interview time - check both field name variations
+                interview_time = action_data.get('interviewTime') or action_data.get('interview_time')
+                if interview_time:
+                    application_data["properties"]["desired_client_interview_time"] = interview_time
+                    logger.info(f"Setting interview time: {interview_time}")
+                else:
+                    logger.info("No interview time found in action data")
+                    
+                # Add notes if provided
+                if action_data.get('notes'):
+                    application_data["properties"]["desired_client_interview_notes"] = action_data.get('notes')
+                    logger.info(f"Setting interview notes: {action_data.get('notes')}")
+                
+                logger.info(f"Final application data for interview: {application_data}")
+            else:
+                # For other actions, skip notes since we only have interview notes field
+                pass
 
         # Update the application custom object using your exact format
-        OBJECT_TYPE = "2-184526441"
+        OBJECT_TYPE = "2-44963172"
         url = f"https://api.hubapi.com/crm/v3/objects/{OBJECT_TYPE}/{candidate_id}"
         headers = {
             "Authorization": f"Bearer {HUBSPOT_API_KEY}",
@@ -2460,6 +2633,27 @@ def submit_custom_object_action(candidate_id):
 
         if response.status_code == 200:
             logger.info(f"Successfully updated application {candidate_id}")
+            
+            # Add association label for approve/reject actions
+            job_order_id = action_data.get('jobOrderId')
+            if job_order_id and action_type in ['approve', 'reject']:
+                try:
+                    association_label = 'Selected' if action_type == 'approve' else 'Rejected'
+                    label_url = f"https://api.hubapi.com/crm/v3/objects/2-44963172/{candidate_id}/associations/2-44956344/{job_order_id}/{association_label}"
+                    label_headers = {
+                        "Authorization": f"Bearer {HUBSPOT_API_KEY}",
+                        "Content-Type": "application/json",
+                    }
+                    
+                    label_response = requests.put(label_url, headers=label_headers)
+                    
+                    if label_response.status_code in [200, 201, 204]:
+                        logger.info(f"Successfully added '{association_label}' label to application {candidate_id} for job order {job_order_id}")
+                    else:
+                        logger.warning(f"Failed to add association label. Status: {label_response.status_code}, Response: {label_response.text}")
+                        
+                except Exception as label_error:
+                    logger.error(f"Error adding association label: {label_error}")
 
             # Trigger workflow if specified
             workflow_id = action_data.get('workflow_id')
@@ -2467,7 +2661,7 @@ def submit_custom_object_action(candidate_id):
                 workflow_url = f"https://api.hubapi.com/automation/v4/flows/{workflow_id}/enrollments"
                 workflow_data = {
                     'objectId': candidate_id,
-                    'objectType': '2-184526441'
+                    'objectType': '2-44963172'
                 }
 
                 workflow_response = requests.post(workflow_url,
@@ -2667,51 +2861,113 @@ def submit_support_ticket():
         return jsonify({'error': 'Failed to submit support ticket'}), 500
 
 
-# Demo data functions
-def get_demo_company_profile(company_id):
-    """Return demo company profile data matching HubSpot field structure"""
-    return {
-        'id': company_id,
-        'name': 'TechCorp Solutions',
-        'domain': 'techcorp.com',
-        'industry': 'Technology',
-        'description':
-        'A leading technology solutions provider specializing in software development and digital transformation services.',
-        'website': 'https://techcorp.com',
-        'phone': '+1 (555) 123-4567',
-        'founded_year': '2015',
-        'company_size': '50-100',
-        'annual_revenue': '$5M - $10M',
-        'company_type': 'Private Company',
-        'address': '123 Tech Street',
-        'city': 'San Francisco',
-        'state': 'CA',
-        'zip': '94105',
-        'country': 'United States',
-        'created_date': '2025-01-01T00:00:00Z',
-        'lifecycle_stage': 'customer',
-        'last_activity_date': '2025-01-28T15:30:00Z',
-        'is_public': 'false',
-        'close_date': '2025-01-01T00:00:00Z',
-        'recent_deal_amount': '$50,000',
-        'recent_deal_close_date': '2025-01-25T00:00:00Z',
-        'active_jobs_count': 2,
-        'total_placements': '15',
-        'hubspot_owner_id': 'demo_owner',
-        'record_source': 'API',
-        'timezone': 'US/Pacific',
-        'facebook_company_page': '',
-        'googleplus_page': '',
-        'linkedin_company_page':
-        'https://linkedin.com/company/techcorp-solutions',
-        'twitter_handle': '@techcorpsolutions',
-        'primary_contact': {
-            'name': 'Sarah Wilson',
-            'email': 'sarah.wilson@techcorp.com',
-            'phone': '+1 (555) 987-6543',
-            'job_title': 'Head of Talent Acquisition'
-        }
-    }
+
+
+
+# Admin endpoints for user management (only for authorized users)
+@app.route('/api/admin/users', methods=['GET'])
+@require_auth
+def get_authorized_users():
+    """Get list of all authorized users"""
+    try:
+        # Check if current user is admin (Tim Schibli for now)
+        if request.user_data['email'] != 'tim.schibli@tprc.com.au':
+            return jsonify({'error': 'Admin access required'}), 403
+            
+        if not DATABASE_URL:
+            return jsonify({'users': [{'email': email, 'name': 'Static User', 'company_name': 'Static'} for email in ALLOWED_EMAILS]})
+        
+        conn = psycopg2.connect(DATABASE_URL)
+        cur = conn.cursor(cursor_factory=RealDictCursor)
+        
+        cur.execute("SELECT id, email, name, company_name, is_active, created_at FROM authorized_users ORDER BY created_at DESC")
+        users = cur.fetchall()
+        
+        cur.close()
+        conn.close()
+        
+        return jsonify({'users': [dict(user) for user in users]})
+    except Exception as e:
+        logger.error(f"Error fetching users: {e}")
+        return jsonify({'error': 'Failed to fetch users'}), 500
+
+
+@app.route('/api/admin/users', methods=['POST'])
+@require_auth
+def add_authorized_user():
+    """Add a new authorized user"""
+    try:
+        # Check if current user is admin
+        if request.user_data['email'] != 'tim.schibli@tprc.com.au':
+            return jsonify({'error': 'Admin access required'}), 403
+            
+        data = request.get_json()
+        email = data.get('email')
+        name = data.get('name', '')
+        company_name = data.get('company_name', '')
+        
+        if not email:
+            return jsonify({'error': 'Email is required'}), 400
+            
+        if not DATABASE_URL:
+            return jsonify({'error': 'Database not configured'}), 500
+        
+        conn = psycopg2.connect(DATABASE_URL)
+        cur = conn.cursor()
+        
+        cur.execute("""
+            INSERT INTO authorized_users (email, name, company_name) 
+            VALUES (%s, %s, %s)
+        """, (email, name, company_name))
+        
+        conn.commit()
+        cur.close()
+        conn.close()
+        
+        logger.info(f"Added authorized user: {email}")
+        return jsonify({'message': 'User added successfully'})
+    except psycopg2.IntegrityError:
+        return jsonify({'error': 'Email already exists'}), 409
+    except Exception as e:
+        logger.error(f"Error adding user: {e}")
+        return jsonify({'error': 'Failed to add user'}), 500
+
+
+@app.route('/api/admin/users/<int:user_id>', methods=['DELETE'])
+@require_auth
+def remove_authorized_user(user_id):
+    """Remove an authorized user"""
+    try:
+        # Check if current user is admin
+        if request.user_data['email'] != 'tim.schibli@tprc.com.au':
+            return jsonify({'error': 'Admin access required'}), 403
+            
+        if not DATABASE_URL:
+            return jsonify({'error': 'Database not configured'}), 500
+        
+        conn = psycopg2.connect(DATABASE_URL)
+        cur = conn.cursor()
+        
+        # Don't allow removing self
+        cur.execute("SELECT email FROM authorized_users WHERE id = %s", (user_id,))
+        user = cur.fetchone()
+        if user and user[0] == 'tim.schibli@tprc.com.au':
+            return jsonify({'error': 'Cannot remove admin user'}), 400
+        
+        cur.execute("UPDATE authorized_users SET is_active = FALSE WHERE id = %s", (user_id,))
+        
+        if cur.rowcount == 0:
+            return jsonify({'error': 'User not found'}), 404
+            
+        conn.commit()
+        cur.close()
+        conn.close()
+        
+        logger.info(f"Deactivated user ID: {user_id}")
+        return jsonify({'message': 'User removed successfully'})
+    except Exception as e:
+        logger.error(f"Error removing user: {e}")
+        return jsonify({'error': 'Failed to remove user'}), 500
 
 
 # Error handlers

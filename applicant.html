@@ -113,6 +113,14 @@
                                     <div><strong>Applied:</strong> <span id="applied-date">-</span></div>
                                     <div><strong>Status:</strong> <span id="application-status">-</span></div>
                                 </div>
+                                
+                                <!-- Association Labels -->
+                                <div class="mt-3">
+                                    <h6 class="text-muted mb-2">Application Status:</h6>
+                                    <div id="association-labels" class="d-flex flex-column gap-1">
+                                        <span class="badge bg-secondary">Loading...</span>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -190,13 +198,13 @@
                             <div class="row mt-4">
                                 <div class="col-12">
                                     <div class="d-flex gap-2 justify-content-end">
-                                        <button type="button" class="btn btn-success" onclick="showApplicantAction(window.currentApplicant?.id, 'approve')">
-                                            <i class="fas fa-check me-2"></i>Approve
-                                        </button>
-                                        <button type="button" class="btn btn-primary" onclick="showApplicantAction(window.currentApplicant?.id, 'interview')">
+                                        <button type="button" id="interview-btn" class="btn btn-primary" onclick="showApplicantActionModal('interview')">
                                             <i class="fas fa-calendar-alt me-2"></i>Interview
                                         </button>
-                                        <button type="button" class="btn btn-danger" onclick="showApplicantAction(window.currentApplicant?.id, 'reject')">
+                                        <button type="button" id="approve-btn" class="btn btn-success" onclick="showConfirmationModal('approve')">
+                                            <i class="fas fa-check me-2"></i>Approve
+                                        </button>
+                                        <button type="button" id="reject-btn" class="btn btn-danger" onclick="showConfirmationModal('reject')">
                                             <i class="fas fa-times me-2"></i>Reject
                                         </button>
                                     </div>
@@ -210,31 +218,72 @@
         </div>
     </div>
 
-    <!-- Action Modal -->
+    <!-- Approve Confirmation Modal -->
+    <div class="modal fade" id="approveConfirmModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Approve Candidate</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="text-center">
+                        <i class="fas fa-check-circle text-success fa-3x mb-3"></i>
+                        <h6>Are you sure you want to approve this candidate?</h6>
+                        <p class="text-muted mb-0" id="approve-candidate-name">Candidate Name</p>
+                        <p class="text-muted">This will add "Selected" to their application status.</p>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-success" id="confirm-approve-btn" onclick="executeAction('approve')">
+                        <i class="fas fa-check me-1"></i>Yes, Approve
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Reject Confirmation Modal -->
+    <div class="modal fade" id="rejectConfirmModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Reject Candidate</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="text-center">
+                        <i class="fas fa-times-circle text-danger fa-3x mb-3"></i>
+                        <h6>Are you sure you want to reject this candidate?</h6>
+                        <p class="text-muted mb-0" id="reject-candidate-name">Candidate Name</p>
+                        <p class="text-muted">This will add "Rejected" to their application status.</p>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-danger" id="confirm-reject-btn" onclick="executeAction('reject')">
+                        <i class="fas fa-times me-1"></i>Yes, Reject
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Interview Action Modal (keep existing) -->
     <div class="modal fade" id="actionModal" tabindex="-1">
         <div class="modal-dialog">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title" id="actionModalTitle">Applicant Action</h5>
+                    <h5 class="modal-title" id="actionModalTitle">Schedule Interview</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
                     <form id="action-form">
-                        <input type="hidden" id="action-type" name="actionType">
+                        <input type="hidden" id="action-type" name="actionType" value="interview">
+                        <input type="hidden" id="action-reason" name="reason" value="interview-scheduling">
                         
-                        <div class="mb-3">
-                            <label for="action-reason" class="form-label">Reason *</label>
-                            <select class="form-select" id="action-reason" name="reason" required>
-                                <!-- Options populated by JavaScript -->
-                            </select>
-                        </div>
-                        
-                        <div class="mb-3">
-                            <label for="action-notes" class="form-label">Additional Notes</label>
-                            <textarea class="form-control" id="action-notes" name="notes" rows="4" placeholder="Add any additional comments..."></textarea>
-                        </div>
-                        
-                        <div class="mb-3" id="interview-scheduling" style="display: none;">
+                        <div class="mb-3" id="interview-scheduling">
                             <div class="row">
                                 <div class="col-md-6">
                                     <label for="interview-date" class="form-label">Interview Date</label>
@@ -242,9 +291,19 @@
                                 </div>
                                 <div class="col-md-6">
                                     <label for="interview-time" class="form-label">Interview Time</label>
-                                    <input type="time" class="form-control" id="interview-time" name="interviewTime">
+                                    <select class="form-select" id="interview-time" name="interviewTime" required>
+                                        <option value="">Select time slot</option>
+                                        <option value="Morning">Morning (9:00AM - 12:00 noon)</option>
+                                        <option value="Afternoon">Afternoon (12:00 noon - 3:00PM)</option>
+                                        <option value="Evening">Evening (3:00PM - 6:00PM)</option>
+                                    </select>
                                 </div>
                             </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="action-notes" class="form-label">Additional Notes</label>
+                            <textarea class="form-control" id="action-notes" name="notes" rows="4" placeholder="Add any additional comments..."></textarea>
                         </div>
                     </form>
                 </div>
@@ -254,7 +313,6 @@
                 </div>
             </div>
         </div>
-    </div>
     </div>
 
     <!-- Client Assessment Scorecard Modal -->
@@ -479,8 +537,11 @@
                 // Initialize HubSpot API
                 const hubspotAPI = new HubSpotAPI();
                 
-                // Load applicant details directly
-                const applicant = await hubspotAPI.getCandidate(applicantId);
+                // Get job order ID first
+                const jobOrderId = urlParams.get('jobOrderId');
+                
+                // Load applicant details with job order context
+                const applicant = await hubspotAPI.getCandidate(applicantId, jobOrderId);
                 console.log('Applicant data received:', applicant);
                 
                 if (!applicant) {
@@ -491,7 +552,6 @@
                 updateApplicantPage(applicant);
                 
                 // Load job order if available
-                const jobOrderId = urlParams.get('jobOrderId');
                 if (jobOrderId) {
                     const jobOrder = await hubspotAPI.getJobOrder(jobOrderId);
                     updateJobOrderCard(jobOrder);
@@ -545,7 +605,8 @@
             const appStatusEl = document.getElementById('application-status');
             if (appStatusEl) appStatusEl.textContent = applicant.status || 'N/A';
             
-
+            // Update association labels
+            updateAssociationLabels(applicant.association_labels || []);
             
             // Update languages
             const languagesEl = document.getElementById('languages');
@@ -562,6 +623,9 @@
             
             // Store for action buttons
             window.currentApplicant = applicant;
+            
+            // Update button states based on association labels
+            updateButtonStates(applicant.association_labels || []);
             
             console.log('Applicant page updated successfully');
         }
@@ -617,6 +681,10 @@
         }
 
         // Show applicant action modal (like on job-order page)
+        function showApplicantActionModal(actionType) {
+            return showApplicantAction(window.currentApplicant?.id, actionType);
+        }
+        
         function showApplicantAction(applicantId, actionType) {
             if (!applicantId || !window.currentApplicant) {
                 alert('No applicant data available for action');
@@ -683,18 +751,25 @@
             const form = document.getElementById('action-form');
             const formData = new FormData(form);
             
-            // Validate required fields
-            if (!formData.get('reason')) {
-                alert('Please select a reason');
-                return;
+            // Validate required fields for interview (date and time)
+            const actionType = formData.get('actionType');
+            if (actionType === 'interview') {
+                if (!formData.get('interviewDate') || !formData.get('interviewTime')) {
+                    alert('Please select both interview date and time');
+                    return;
+                }
             }
+            
+            // Show loading indicator
+            showLoading(`Processing ${actionType} action...`);
             
             const actionData = {
                 applicantId: window.currentApplicant?.id,
                 actionType: formData.get('actionType'),
                 reason: formData.get('reason'),
                 notes: formData.get('notes'),
-                interviewDate: formData.get('interviewDate')
+                interviewDate: formData.get('interviewDate'),
+                interviewTime: formData.get('interviewTime')
             };
             
             // Submit to HubSpot
@@ -702,6 +777,9 @@
                 console.log('Submitting action data:', actionData);
                 const response = await submitApplicantActionToHubSpot(actionData);
                 console.log('Action response:', response);
+                
+                // Hide loading indicator
+                hideLoading();
                 
                 // Close modal and show success
                 bootstrap.Modal.getInstance(document.getElementById('actionModal')).hide();
@@ -718,6 +796,7 @@
             } catch (error) {
                 console.error('Error submitting applicant action:', error);
                 console.error('Error details:', error.message, error.stack);
+                hideLoading();
                 showAlert('danger', `Failed to submit applicant action: ${error.message || 'Please try again.'}`);
             }
         }
@@ -744,7 +823,7 @@
                     throw new Error('Invalid action type');
             }
 
-            console.log('Submitting to API endpoint:', `/api/hubspot/objects/2-184526441/${actionData.applicantId}/actions`);
+            console.log('Submitting to API endpoint:', `/api/hubspot/objects/2-44963172/${actionData.applicantId}/actions`);
             console.log('Request body:', {
                 action: actionData.actionType,
                 pipeline_stage: pipelineStage,
@@ -752,10 +831,11 @@
                 applicantId: actionData.applicantId,
                 reason: actionData.reason,
                 notes: actionData.notes,
-                interview_date: actionData.interviewDate
+                interview_date: actionData.interviewDate,
+                interview_time: actionData.interviewTime
             });
 
-            const response = await fetch(`/api/hubspot/objects/2-184526441/${actionData.applicantId}/actions`, {
+            const response = await fetch(`/api/hubspot/objects/2-44963172/${actionData.applicantId}/actions`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -768,7 +848,8 @@
                     applicantId: actionData.applicantId,
                     reason: actionData.reason,
                     notes: actionData.notes,
-                    interview_date: actionData.interviewDate
+                    interview_date: actionData.interviewDate,
+                    interview_time: actionData.interviewTime
                 })
             });
 
@@ -790,6 +871,238 @@
             const result = await response.json();
             console.log('Success response:', result);
             return result;
+        }
+
+        // New functions for association label management and confirmation modals
+        
+        // Update association labels display
+        function updateAssociationLabels(labels) {
+            const labelsContainer = document.getElementById('association-labels');
+            if (!labelsContainer) return;
+            
+            if (!labels || labels.length === 0) {
+                labelsContainer.innerHTML = '<span class="badge bg-secondary">Recommended</span>';
+                return;
+            }
+            
+            const labelBadges = labels.map(label => {
+                const badgeClass = getLabelBadgeClass(label);
+                return `<span class="badge ${badgeClass}">${label}</span>`;
+            }).join('');
+            
+            labelsContainer.innerHTML = labelBadges;
+        }
+        
+        // Get appropriate badge class for label
+        function getLabelBadgeClass(label) {
+            const lowerLabel = (label || '').toLowerCase();
+            switch (lowerLabel) {
+                case 'selected': return 'bg-success';
+                case 'rejected': return 'bg-danger';
+                case 'recommended': return 'bg-primary';
+                case 'reserved': return 'bg-warning';
+                case 'interviewing': return 'bg-info';
+                default: return 'bg-secondary';
+            }
+        }
+        
+        // Update button states based on association labels
+        function updateButtonStates(labels) {
+            const approveBtn = document.getElementById('approve-btn');
+            const interviewBtn = document.getElementById('interview-btn');
+            const rejectBtn = document.getElementById('reject-btn');
+            
+            const labelSet = new Set((labels || []).map(l => l.toLowerCase()));
+            const isSelected = labelSet.has('selected');
+            const isRejected = labelSet.has('rejected');
+            
+            // Disable buttons if candidate is already selected or rejected
+            if (isSelected || isRejected) {
+                if (approveBtn) {
+                    approveBtn.disabled = true;
+                    approveBtn.classList.add('btn-outline-success');
+                    approveBtn.classList.remove('btn-success');
+                }
+                if (interviewBtn) {
+                    interviewBtn.disabled = true;
+                    interviewBtn.classList.add('btn-outline-primary');
+                    interviewBtn.classList.remove('btn-primary');
+                }
+                if (rejectBtn) {
+                    rejectBtn.disabled = true;
+                    rejectBtn.classList.add('btn-outline-danger');
+                    rejectBtn.classList.remove('btn-danger');
+                }
+            } else {
+                // Enable buttons for normal candidates
+                if (approveBtn) {
+                    approveBtn.disabled = false;
+                    approveBtn.classList.add('btn-success');
+                    approveBtn.classList.remove('btn-outline-success');
+                }
+                if (interviewBtn) {
+                    interviewBtn.disabled = false;
+                    interviewBtn.classList.add('btn-primary');
+                    interviewBtn.classList.remove('btn-outline-primary');
+                }
+                if (rejectBtn) {
+                    rejectBtn.disabled = false;
+                    rejectBtn.classList.add('btn-danger');
+                    rejectBtn.classList.remove('btn-outline-danger');
+                }
+            }
+        }
+        
+        // Show confirmation modal for approve/reject actions
+        function showConfirmationModal(actionType) {
+            if (!window.currentApplicant) {
+                alert('No applicant data available for action');
+                return;
+            }
+            
+            const candidateName = `${window.currentApplicant.first_name || ''} ${window.currentApplicant.last_name || ''}`.trim();
+            
+            if (actionType === 'approve') {
+                const modal = document.getElementById('approveConfirmModal');
+                const nameEl = document.getElementById('approve-candidate-name');
+                if (nameEl) nameEl.textContent = candidateName || 'Candidate';
+                new bootstrap.Modal(modal).show();
+            } else if (actionType === 'reject') {
+                const modal = document.getElementById('rejectConfirmModal');
+                const nameEl = document.getElementById('reject-candidate-name');
+                if (nameEl) nameEl.textContent = candidateName || 'Candidate';
+                new bootstrap.Modal(modal).show();
+            }
+        }
+        
+        // Execute approve/reject action with association label update
+        async function executeAction(actionType) {
+            if (!window.currentApplicant) {
+                alert('No applicant data available for action');
+                return;
+            }
+            
+            try {
+                // Close the confirmation modal
+                const modalId = actionType === 'approve' ? 'approveConfirmModal' : 'rejectConfirmModal';
+                bootstrap.Modal.getInstance(document.getElementById(modalId)).hide();
+                
+                // Show loading indicator
+                showLoading(`Processing ${actionType} action...`);
+                
+                // Get job order ID from URL
+                const urlParams = new URLSearchParams(window.location.search);
+                const jobOrderId = urlParams.get('jobOrderId');
+                
+                if (!jobOrderId) {
+                    throw new Error('No job order ID available for association update');
+                }
+                
+                // Prepare action data for custom object endpoint
+                const actionData = {
+                    action: actionType,
+                    jobOrderId: jobOrderId,
+                    reason: actionType === 'approve' ? 'Approved via client portal' : 'Rejected via client portal',
+                    notes: `${actionType === 'approve' ? 'Approved' : 'Rejected'} by client via portal`
+                };
+                
+                console.log('Executing action:', actionData);
+                
+                // Call the custom object action endpoint directly with application ID
+                const response = await fetch(`/api/hubspot/objects/2-44963172/${window.currentApplicant.id}/actions`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${localStorage.getItem('tprc_token')}`
+                    },
+                    body: JSON.stringify(actionData)
+                });
+                
+                if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.message || 'Failed to update association label');
+                }
+                
+                const result = await response.json();
+                console.log('Action result:', result);
+                
+                // Hide loading indicator
+                hideLoading();
+                
+                const newLabel = actionType === 'approve' ? 'Selected' : 'Rejected';
+                showAlert('success', `Candidate ${actionType}d successfully! Association label "${newLabel}" has been added.`);
+                
+                // Reload page to show updated labels and button states
+                setTimeout(() => {
+                    location.reload();
+                }, 1500);
+                
+            } catch (error) {
+                console.error('Error executing action:', error);
+                hideLoading();
+                showAlert('danger', `Failed to ${actionType} candidate: ${error.message}`);
+            }
+        }
+        
+        // Loading indicator functions
+        function showLoading(message = 'Processing...') {
+            // Remove any existing loading indicator
+            hideLoading();
+            
+            // Create loading overlay
+            const overlay = document.createElement('div');
+            overlay.id = 'loading-overlay';
+            overlay.className = 'loading-overlay';
+            overlay.innerHTML = `
+                <div class="loading-content">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <div class="loading-message mt-3">${message}</div>
+                </div>
+            `;
+            
+            document.body.appendChild(overlay);
+            
+            // Add loading styles if not already present
+            if (!document.getElementById('loading-styles')) {
+                const style = document.createElement('style');
+                style.id = 'loading-styles';
+                style.textContent = `
+                    .loading-overlay {
+                        position: fixed;
+                        top: 0;
+                        left: 0;
+                        width: 100%;
+                        height: 100%;
+                        background: rgba(0, 0, 0, 0.5);
+                        display: flex;
+                        justify-content: center;
+                        align-items: center;
+                        z-index: 9999;
+                    }
+                    .loading-content {
+                        background: white;
+                        padding: 30px;
+                        border-radius: 10px;
+                        text-align: center;
+                        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+                    }
+                    .loading-message {
+                        font-size: 16px;
+                        color: #333;
+                        font-weight: 500;
+                    }
+                `;
+                document.head.appendChild(style);
+            }
+        }
+        
+        function hideLoading() {
+            const overlay = document.getElementById('loading-overlay');
+            if (overlay) {
+                overlay.remove();
+            }
         }
     </script>
 </body>

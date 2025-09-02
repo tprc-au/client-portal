@@ -115,7 +115,43 @@ The frontend follows a traditional multi-page architecture where each HTML file 
   - Production-optimized Flask settings
   - Comprehensive error handling for deployment platforms
 
-### Recent Changes (Updated: 2025-08-27)
+### Recent Changes (Updated: 2025-09-01)
+
+**Custom Object Integration & Demo Data Removal (2025-09-01)**: Successfully updated system to use correct custom objects and removed all demo data:
+- Updated to use correct HubSpot custom object ID: `2-44956344` for job orders
+- Restored custom object architecture instead of using deals as job orders
+- Removed all demo data functions and fallbacks for authentic data-only approach
+- System now uses HubSpot custom job order objects (2-44956344) and application objects (2-184526441)
+- Updated authentication to use real HubSpot company ID: 503464912 (Salsa Bar & Grill)
+- Eliminated all demo functions: get_demo_*, ensuring only real HubSpot data is displayed
+- API endpoints now strictly use authentic HubSpot custom objects with proper associations
+- Pipeline navigation completely removed from all HTML files (dashboard, documents, job-order)
+- Updated to correct custom object IDs: Applications now use 2-44963172 instead of 2-184526441
+- Implemented association label filtering: Only shows candidates with "Recommended" association label
+- Enhanced logging to display association labels and filtering decisions
+- Maintained fallback search mechanism when association API fails
+
+**Data Integration Success**: Portal successfully displays:
+- Real HubSpot deals as job orders with authentic titles and amounts
+- Deal-based job statuses mapped from HubSpot deal stages
+- Contact-based candidate system ready for association mapping
+- Authentic company data from HubSpot's company registry
+
+**Enhanced Applicant Management (2025-09-02)**: Implemented comprehensive applicant action system:
+- Added confirmation modals for Approve/Reject actions with simple Yes/Cancel options
+- Integrated association label management: "Selected" for approved, "Rejected" for rejected candidates  
+- Added real-time association label display showing current application status
+- Implemented smart button state management - disables all action buttons when candidate is Selected/Rejected
+- Connected frontend actions to HubSpot association API for persistent label updates
+- Maintained Interview action functionality with existing detailed modal
+- Updated dashboard candidate counts to reflect only "Recommended" association labels for accuracy
+
+**Job Order Table Enhancement (2025-09-02)**: Enhanced job order candidate table with additional data columns:
+- Added "Association Labels" column displaying color-coded badges (Selected=green, Rejected=red, Recommended=blue)
+- Added "Application Status" column showing Active/Issues/Inactive status based on HubSpot pipeline stages
+- Updated view button to use applicationId instead of contactId for proper applicant page navigation
+- Implemented server-side application status determination logic mapping HubSpot properties to business status
+- Enhanced candidate data structure with application_id field for consistent referencing across pages
 
 **Deployment Configuration Fully Optimized**: Comprehensive deployment fixes implemented:
 - Added dedicated `/health` endpoint for deployment health checks
@@ -126,19 +162,6 @@ The frontend follows a traditional multi-page architecture where each HTML file 
 - Added `.env.example` for proper environment variable configuration
 - Fixed variable definition order to prevent startup errors
 - Verified health endpoints respond correctly to deployment health checks
-
-**Real HubSpot Integration Completed**: Successfully implemented complete data integration with authentic HubSpot custom objects, associations, and candidate records.
-
-**HubSpot Workflow Integration**: Added automatic workflow triggers for candidate actions:
-- Approve button triggers HubSpot workflow ID: 2509546972
-- Reject button triggers HubSpot workflow ID: 2509546994
-- Status updates and workflow enrollments logged in real-time
-
-**Company-Specific Security**: Implemented proper data filtering to show only company-associated job orders and applications, preventing cross-company data exposure.
-
-**Candidate Management**: Fixed application formatting to display real candidate names ("Raj pal", "Agus") from HubSpot records instead of generic placeholders.
-
-**Data Integrity**: Eliminated all demo/mock data usage - portal now displays only authentic HubSpot data with proper error handling for missing records.
 
 ### Architecture Decisions
 

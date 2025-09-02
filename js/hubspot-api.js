@@ -60,8 +60,13 @@ class HubSpotAPI {
     }
 
     // Get specific candidate details
-    async getCandidate(candidateId) {
-        return await this.request(`/candidates/${candidateId}`);
+    async getCandidate(candidateId, jobOrderId = null) {
+        const params = new URLSearchParams();
+        if (jobOrderId) {
+            params.append('jobOrderId', jobOrderId);
+        }
+        const queryString = params.toString();
+        return await this.request(`/candidates/${candidateId}${queryString ? '?' + queryString : ''}`);
     }
 
     // Get candidate documents
