@@ -3,10 +3,44 @@ class HubSpotAPI {
     constructor() {
         this.baseUrl = '/api/hubspot';
         this.authManager = authManager;
+        this.cache = new Map();
+        this.cacheExpiry = 5 * 60 * 1000; // 5 minutes cache
     }
 
-    // Generic API request method
+    // Simple caching mechanism
+    getCacheKey(endpoint, options) {
+        return `${endpoint}_${JSON.stringify(options || {})}`;
+    }
+
+    setCacheItem(key, data) {
+        this.cache.set(key, {
+            data: data,
+            timestamp: Date.now()
+        });
+    }
+
+    getCacheItem(key) {
+        const item = this.cache.get(key);
+        if (item && (Date.now() - item.timestamp) < this.cacheExpiry) {
+            return item.data;
+        }
+        this.cache.delete(key);
+        return null;
+    }
+
+    // Generic API request method with caching
     async request(endpoint, options = {}) {
+        const cacheKey = this.getCacheKey(endpoint, options);
+        
+        // Check cache for GET requests
+        if (!options.method || options.method === 'GET') {
+            const cachedData = this.getCacheItem(cacheKey);
+            if (cachedData) {
+                console.log(`Cache hit for ${endpoint}`);
+                return cachedData;
+            }
+        }
+        
         const url = `${this.baseUrl}${endpoint}`;
         
         try {
@@ -20,7 +54,14 @@ class HubSpotAPI {
                 throw new Error(errorData.error || `HTTP ${response.status}: ${response.statusText}`);
             }
 
-            return await response.json();
+            const data = await response.json();
+            
+            // Cache GET responses
+            if (!options.method || options.method === 'GET') {
+                this.setCacheItem(cacheKey, data);
+            }
+            
+            return data;
         } catch (error) {
             console.error(`HubSpot API Error (${endpoint}):`, error);
             throw error;

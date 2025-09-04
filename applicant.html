@@ -253,11 +253,15 @@
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
-                    <div class="text-center">
+                    <div class="text-center mb-4">
                         <i class="fas fa-times-circle text-danger fa-3x mb-3"></i>
                         <h6>Are you sure you want to reject this candidate?</h6>
                         <p class="text-muted mb-0" id="reject-candidate-name">Candidate Name</p>
                         <p class="text-muted">This will add "Rejected" to their application status.</p>
+                    </div>
+                    <div class="mb-3">
+                        <label for="reject-notes" class="form-label">Reason for rejection</label>
+                        <textarea class="form-control" id="reject-notes" rows="4" placeholder="Please provide a reason for rejecting this candidate..."></textarea>
                     </div>
                 </div>
                 <div class="modal-footer">
@@ -999,12 +1003,20 @@
                 }
                 
                 // Prepare action data for custom object endpoint
-                const actionData = {
+                let actionData = {
                     action: actionType,
                     jobOrderId: jobOrderId,
                     reason: actionType === 'approve' ? 'Approved via client portal' : 'Rejected via client portal',
                     notes: `${actionType === 'approve' ? 'Approved' : 'Rejected'} by client via portal`
                 };
+                
+                // For reject action, include the unqualified notes
+                if (actionType === 'reject') {
+                    const rejectNotes = document.getElementById('reject-notes').value.trim();
+                    if (rejectNotes) {
+                        actionData.unqualified_notes = rejectNotes;
+                    }
+                }
                 
                 console.log('Executing action:', actionData);
                 
