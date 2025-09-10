@@ -261,7 +261,7 @@ class HubSpotClient:
                     logger.info(f"Found {len(job_order_ids)} associated job orders via associations API")
                     job_orders = []
                     properties = [
-                        'job_order_title', 'role_description', 'hs_createdate',
+                        'job_order_title', 'role_description', 'job_description', 'hs_createdate',
                         'employment_status', 'total_applicants', 'company_name', 'company_id'
                     ]
 
@@ -289,7 +289,7 @@ class HubSpotClient:
             # Method 2: Get all job orders and filter by company
             logger.info("Trying to get all job orders and filter by company")
             properties = [
-                'job_order_title', 'role_description', 'hs_createdate',
+                'job_order_title', 'role_description', 'job_description', 'hs_createdate',
                 'employment_status', 'total_applicants', 'company_name', 'company_id'
             ]
             params = {'properties': ','.join(properties), 'limit': 100}
@@ -342,7 +342,7 @@ class HubSpotClient:
         try:
             # Use custom job order objects
             properties = [
-                'job_order_title', 'role_description', 'hs_createdate',
+                'job_order_title', 'role_description', 'job_description', 'hs_createdate',
                 'employment_status', 'total_applicants'
             ]
             params = {'properties': ','.join(properties)}
@@ -1005,7 +1005,7 @@ class HubSpotClient:
             'title':
             props.get('job_order_title', props.get('title', '')),
             'description':
-            props.get('role_description', props.get('description', '')),
+            props.get('job_description', props.get('role_description', props.get('description', ''))),
             'position_type':
             props.get('position_type', 'Full-time'),
             'location':
@@ -2253,7 +2253,8 @@ def get_candidate(candidate_id):
 
         # First try to get as application custom object (using correct ID)
         try:
-            application_response = hubspot_client.make_request('GET', f'/crm/v3/objects/2-44963172/{candidate_id}')
+            application_response = hubspot_client.make_request('GET', f'/crm/v3/objects/2-44963172/{candidate_id}', 
+                params={'properties': ['cirrusai_overall_summary', 'cirrusai_skills_match_reasons', 'cirrusai_contextual_fit_reasons', 'educations', 'candidate_skills', 'candidate_education', 'candidate_first_name', 'candidate_last_name', 'candidate_email', 'candidate_phone', 'candidate_age', 'candidate_location']})
             
             if application_response:
                 properties = application_response.get('properties', {})
@@ -2331,10 +2332,14 @@ def get_candidate(candidate_id):
                     'skills': skills_array,
                     'experience': properties.get('candidate_experience', properties.get('work_experience', '')),
                     'education': education_array,
+                    'educations': properties.get('educations', ''),
                     'created_date': properties.get('createdate', properties.get('hs_createdate', application_response.get('createdAt', ''))),
                     'languages': properties.get('languages', '').split(',') if properties.get('languages') else [],
                     'association_labels': list(set(association_labels)),  # Remove duplicates
-                    'application_status': hubspot_client.determine_application_status(properties)
+                    'application_status': hubspot_client.determine_application_status(properties),
+                    'cirrusai_overall_summary': properties.get('cirrusai_overall_summary', ''),
+                    'cirrusai_skills_match_reasons': properties.get('cirrusai_skills_match_reasons', ''),
+                    'cirrusai_contextual_fit_reasons': properties.get('cirrusai_contextual_fit_reasons', '')
                 }
                 logger.info(f"Successfully fetched application {candidate_id} with contact data and association labels: {association_labels}")
                 return jsonify(candidate)
@@ -2612,6 +2617,12 @@ def submit_custom_object_action(candidate_id):
             if action_data.get('unqualified_notes'):
                 application_data["properties"]["unqualified_notes"] = action_data.get('unqualified_notes')
                 logger.info(f"Setting unqualified notes: {action_data.get('unqualified_notes')}")
+            
+            # Add client rejection reason and set unqualified_by = 'Client' if provided
+            if action_data.get('client_rejection_reason'):
+                application_data["properties"]["client_rejection_reason"] = action_data.get('client_rejection_reason')
+                application_data["properties"]["unqualified_by"] = "Client"
+                logger.info(f"Setting client rejection reason: {action_data.get('client_rejection_reason')} with unqualified_by: Client")
         else:
             # For interview actions, only update the interview fields
             application_data = {

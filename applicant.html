@@ -73,8 +73,8 @@
         <nav aria-label="breadcrumb">
             <ol class="breadcrumb">
                 <li class="breadcrumb-item"><a href="dashboard.html">Dashboard</a></li>
-                <li class="breadcrumb-item"><a href="#" id="job-order-link">Job Order</a></li>
-                <li class="breadcrumb-item active">Applicant Profile</li>
+                <li class="breadcrumb-item"><a href="job-order.html?id=" id="job-order-link">Job Order</a></li>
+                <li class="breadcrumb-item active" id="applicant-breadcrumb">Applicant Profile</li>
             </ol>
         </nav>
     </div>
@@ -96,22 +96,17 @@
                                 <div class="applicant-avatar mb-3">
                                     <i class="fas fa-user-circle fa-5x text-muted" id="applicant-avatar"></i>
                                 </div>
-                                <span class="badge bg-secondary" id="applicant-status">Status</span>
                             </div>
                             <div class="col-md-7">
                                 <h2 class="mb-2" id="applicant-name">Loading...</h2>
                                 <div class="d-flex flex-wrap gap-3 mb-3">
-                                    <span><i class="fas fa-birthday-cake text-muted me-1"></i><span id="applicant-age">-</span> years old</span>
-                                    <span><i class="fas fa-map-marker-alt text-muted me-1"></i><span id="applicant-location">-</span></span>
                                     <span><i class="fas fa-envelope text-muted me-1"></i><span id="applicant-email">-</span></span>
                                     <span><i class="fas fa-phone text-muted me-1"></i><span id="applicant-phone">-</span></span>
                                 </div>
-                                <p class="mb-0 text-muted" id="applicant-summary">Loading applicant summary...</p>
                             </div>
                             <div class="col-md-3 text-end">
                                 <div class="text-muted small">
                                     <div><strong>Applied:</strong> <span id="applied-date">-</span></div>
-                                    <div><strong>Status:</strong> <span id="application-status">-</span></div>
                                 </div>
                                 
                                 <!-- Association Labels -->
@@ -174,10 +169,6 @@
                                             
 
                                             
-                                            <h6>Languages</h6>
-                                            <div id="languages" class="mb-3">
-                                                <span class="badge bg-info me-1 mb-1">Loading...</span>
-                                            </div>
                                         </div>
                                         <div class="col-md-6">
                                             <h6>Work Experience</h6>
@@ -258,6 +249,15 @@
                         <h6>Are you sure you want to reject this candidate?</h6>
                         <p class="text-muted mb-0" id="reject-candidate-name">Candidate Name</p>
                         <p class="text-muted">This will add "Rejected" to their application status.</p>
+                    </div>
+                    <div class="mb-3">
+                        <label for="client-rejection-reason" class="form-label">Client rejection reason</label>
+                        <select class="form-select" id="client-rejection-reason">
+                            <option value="">Select a reason...</option>
+                            <option value="Insufficient Experience">Insufficient Experience</option>
+                            <option value="Poor English/Communication">Poor English/Communication</option>
+                            <option value="Personality">Personality</option>
+                        </select>
                     </div>
                     <div class="mb-3">
                         <label for="reject-notes" class="form-label">Reason for rejection</label>
@@ -543,6 +543,16 @@
                 
                 // Get job order ID first
                 const jobOrderId = urlParams.get('jobOrderId');
+                console.log('Job Order ID from URL:', jobOrderId);
+                
+                // Update job order breadcrumb link immediately
+                const jobOrderLink = document.getElementById('job-order-link');
+                if (jobOrderLink && jobOrderId) {
+                    jobOrderLink.href = `job-order.html?id=${jobOrderId}`;
+                    console.log('Updated job order link to:', jobOrderLink.href);
+                } else {
+                    console.error('Failed to update job order link. Link element:', jobOrderLink, 'Job Order ID:', jobOrderId);
+                }
                 
                 // Load applicant details with job order context
                 const applicant = await hubspotAPI.getCandidate(applicantId, jobOrderId);
@@ -575,13 +585,35 @@
             
             // Update header information
             const nameEl = document.getElementById('applicant-name');
-            if (nameEl) nameEl.textContent = `${applicant.first_name || 'Unknown'} ${applicant.last_name || 'Applicant'}`;
             
-            const ageEl = document.getElementById('applicant-age');
-            if (ageEl) ageEl.textContent = applicant.age || 'N/A';
+            // Build full name from various possible field combinations
+            let fullName = '';
+            if (applicant.first_name || applicant.last_name) {
+                fullName = `${applicant.first_name || ''} ${applicant.last_name || ''}`.trim();
+            } else if (applicant.name) {
+                fullName = applicant.name;
+            } else if (applicant.firstname || applicant.lastname) {
+                fullName = `${applicant.firstname || ''} ${applicant.lastname || ''}`.trim();
+            }
             
-            const locationEl = document.getElementById('applicant-location');
-            if (locationEl) locationEl.textContent = applicant.location || 'N/A';
+            // Fallback to Applicant if no name found
+            if (!fullName) {
+                fullName = 'Applicant';
+            }
+            
+            console.log('Setting applicant name to:', fullName);
+            
+            if (nameEl) nameEl.textContent = fullName;
+            
+            // Update breadcrumb with applicant name
+            const breadcrumbEl = document.getElementById('applicant-breadcrumb');
+            if (breadcrumbEl) {
+                breadcrumbEl.textContent = fullName;
+                console.log('Updated breadcrumb to:', fullName);
+            } else {
+                console.error('Breadcrumb element not found');
+            }
+            
             
             const emailEl = document.getElementById('applicant-email');
             if (emailEl) emailEl.textContent = applicant.email || 'N/A';
@@ -592,12 +624,10 @@
             const statusEl = document.getElementById('applicant-status');
             if (statusEl) statusEl.textContent = applicant.status || 'N/A';
             
-            const summaryEl = document.getElementById('applicant-summary');
-            if (summaryEl) summaryEl.textContent = applicant.summary || 'No summary available';
             
             // Update professional summary
             const profSummaryEl = document.getElementById('professional-summary');
-            if (profSummaryEl) profSummaryEl.textContent = applicant.summary || 'No professional summary available';
+            if (profSummaryEl) profSummaryEl.textContent = applicant.cirrusai_skills_match_reasons || 'No professional summary available';
             
             // Update applied date
             const appliedDateEl = document.getElementById('applied-date');
@@ -606,24 +636,11 @@
                 appliedDateEl.textContent = new Date(appliedDate).toLocaleDateString();
             }
             
-            const appStatusEl = document.getElementById('application-status');
-            if (appStatusEl) appStatusEl.textContent = applicant.status || 'N/A';
+            // Application status removed from display
             
             // Update association labels
             updateAssociationLabels(applicant.association_labels || []);
             
-            // Update languages
-            const languagesEl = document.getElementById('languages');
-            if (languagesEl) {
-                const languages = applicant.languages || ['English'];
-                if (Array.isArray(languages) && languages.length > 0) {
-                    languagesEl.innerHTML = languages.map(lang => 
-                        `<span class="badge bg-info me-1 mb-1">${lang ? lang.toString().trim() : ''}</span>`
-                    ).join('');
-                } else {
-                    languagesEl.innerHTML = '<span class="badge bg-info me-1 mb-1">English</span>';
-                }
-            }
             
             // Store for action buttons
             window.currentApplicant = applicant;
@@ -1010,11 +1027,16 @@
                     notes: `${actionType === 'approve' ? 'Approved' : 'Rejected'} by client via portal`
                 };
                 
-                // For reject action, include the unqualified notes
+                // For reject action, include the unqualified notes and client rejection reason
                 if (actionType === 'reject') {
                     const rejectNotes = document.getElementById('reject-notes').value.trim();
                     if (rejectNotes) {
                         actionData.unqualified_notes = rejectNotes;
+                    }
+                    
+                    const clientRejectionReason = document.getElementById('client-rejection-reason').value.trim();
+                    if (clientRejectionReason) {
+                        actionData.client_rejection_reason = clientRejectionReason;
                     }
                 }
                 

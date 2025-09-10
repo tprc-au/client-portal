@@ -215,28 +215,6 @@
             </div>
         </div>
 
-        <!-- Recent Activity -->
-        <div class="row mt-4">
-            <div class="col-12">
-                <div class="card">
-                    <div class="card-header">
-                        <h5 class="mb-0">
-                            <i class="fas fa-history me-2"></i>Recent Activity
-                        </h5>
-                    </div>
-                    <div class="card-body">
-                        <div id="recent-activity">
-                            <div class="text-center py-3">
-                                <div class="spinner-border text-primary" role="status">
-                                    <span class="visually-hidden">Loading...</span>
-                                </div>
-                                <p class="mt-2 mb-0">Loading recent activity...</p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
@@ -263,11 +241,10 @@
         async function loadDashboardData() {
             try {
                 // Load all dashboard data in parallel for better performance
-                const [userProfile, stats, jobOrders, recentActivity] = await Promise.allSettled([
+                const [userProfile, stats, jobOrders] = await Promise.allSettled([
                     loadUserProfile(),
                     loadStatistics(),
-                    loadJobOrders(),
-                    loadRecentActivity()
+                    loadJobOrders()
                 ]);
                 
                 // Handle any failed requests gracefully
@@ -281,9 +258,6 @@
                 if (jobOrders.status === 'rejected') {
                     console.error('Failed to load job orders:', jobOrders.reason);
                     showJobOrdersError();
-                }
-                if (recentActivity.status === 'rejected') {
-                    console.error('Failed to load recent activity:', recentActivity.reason);
                 }
             } catch (error) {
                 console.error('Dashboard loading error:', error);

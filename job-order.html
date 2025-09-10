@@ -90,18 +90,13 @@
                                 <h2 class="mb-2" id="job-title">Loading...</h2>
                                 <div class="d-flex flex-wrap gap-3 mb-3">
                                     <span class="badge bg-primary" id="job-type">-</span>
-                                    <span class="badge bg-info" id="job-location">-</span>
                                     <span class="badge bg-success" id="job-status">-</span>
                                 </div>
                                 <p class="mb-0 text-muted" id="job-description">Loading job description...</p>
                             </div>
                             <div class="col-md-4 text-end">
-                                <button class="btn btn-outline-primary btn-sm mb-2" id="edit-job-btn">
-                                    <i class="fas fa-edit me-1"></i>Request Changes
-                                </button>
                                 <div class="text-muted small">
                                     <div><strong>Created:</strong> <span id="job-created-date">-</span></div>
-                                    <div><strong>Deadline:</strong> <span id="job-deadline">-</span></div>
                                 </div>
                             </div>
                         </div>
@@ -121,11 +116,6 @@
                                     <i class="fas fa-users me-1"></i>Available Applicants <span class="badge bg-secondary ms-1" id="candidates-count">0</span>
                                 </button>
                             </li>
-                            <li class="nav-item" role="presentation">
-                                <button class="nav-link" id="requirements-tab" data-bs-toggle="tab" data-bs-target="#requirements" type="button" role="tab">
-                                    <i class="fas fa-list-check me-1"></i>Requirements
-                                </button>
-                            </li>
 
                         </ul>
                     </div>
@@ -140,13 +130,6 @@
                                             <span class="input-group-text"><i class="fas fa-search"></i></span>
                                             <input type="text" class="form-control" placeholder="Search applicants..." id="search-candidates">
                                         </div>
-                                        <select class="form-select" style="width: 150px;" id="filter-candidates">
-                                            <option value="">All Applicants</option>
-                                            <option value="available">Available</option>
-                                            <option value="interviewing">Interviewing</option>
-                                            <option value="selected">Selected</option>
-                                            <option value="rejected">Rejected</option>
-                                        </select>
                                     </div>
                                 </div>
                                 
@@ -155,9 +138,6 @@
                                         <thead class="table-light">
                                             <tr>
                                                 <th>Candidate</th>
-                                                <th>Age</th>
-                                                <th>Location</th>
-                                                <th>Skills</th>
                                                 <th>Association Labels</th>
                                                 <th>Application Status</th>
                                                 <th>Actions</th>
@@ -165,7 +145,7 @@
                                         </thead>
                                         <tbody id="candidates-list">
                                             <tr>
-                                                <td colspan="7" class="text-center py-4">
+                                                <td colspan="4" class="text-center py-4">
                                                     <div class="spinner-border text-primary" role="status">
                                                         <span class="visually-hidden">Loading...</span>
                                                     </div>
@@ -177,36 +157,6 @@
                                 </div>
                             </div>
                             
-                            <!-- Requirements Tab -->
-                            <div class="tab-pane fade" id="requirements" role="tabpanel">
-                                <div class="row">
-                                    <div class="col-md-6">
-                                        <h6>Essential Requirements</h6>
-                                        <ul id="essential-requirements" class="list-unstyled">
-                                            <li class="mb-2"><i class="fas fa-check-circle text-success me-2"></i>Loading...</li>
-                                        </ul>
-                                    </div>
-                                    <div class="col-md-6">
-                                        <h6>Preferred Qualifications</h6>
-                                        <ul id="preferred-requirements" class="list-unstyled">
-                                            <li class="mb-2"><i class="fas fa-plus-circle text-info me-2"></i>Loading...</li>
-                                        </ul>
-                                    </div>
-                                </div>
-                                
-                                <hr>
-                                
-                                <div class="row">
-                                    <div class="col-md-6">
-                                        <h6>Salary Range</h6>
-                                        <p id="salary-range">Loading...</p>
-                                    </div>
-                                    <div class="col-md-6">
-                                        <h6>Benefits</h6>
-                                        <p id="benefits">Loading...</p>
-                                    </div>
-                                </div>
-                            </div>
                             
 
                         </div>
@@ -257,7 +207,6 @@
                                 <i class="fas fa-user-circle fa-5x text-muted"></i>
                             </div>
                             <h6 id="modal-candidate-name">Candidate Name</h6>
-                            <p class="text-muted small" id="modal-candidate-location">Location</p>
                         </div>
                         <div class="col-md-8">
                             <form id="candidate-action-form">
@@ -319,36 +268,13 @@
             }
             
             // Load job order data with parallel loading
-            await loadJobOrderDetails(jobOrderId);
+            await window.tprcApp.loadJobOrderDetails(jobOrderId);
             
             // Setup event listeners
-            setupEventListeners();
+            window.tprcApp.setupJobOrderEventListeners();
         });
 
-        function setupEventListeners() {
-            // Search and filter
-            document.getElementById('search-candidates').addEventListener('input', filterCandidates);
-            document.getElementById('filter-candidates').addEventListener('change', filterCandidates);
-            
-            // Logout
-            document.getElementById('logout-btn').addEventListener('click', logout);
-            
-            // Candidate action form
-            document.getElementById('confirm-action-btn').addEventListener('click', submitCandidateAction);
-        }
 
-        function filterCandidates() {
-            const searchTerm = document.getElementById('search-candidates').value.toLowerCase();
-            const statusFilter = document.getElementById('filter-candidates').value;
-            
-            // Filter and re-render candidates
-            renderCandidates(candidates.filter(candidate => {
-                const matchesSearch = candidate.name.toLowerCase().includes(searchTerm) ||
-                                    candidate.location.toLowerCase().includes(searchTerm);
-                const matchesStatus = !statusFilter || candidate.status === statusFilter;
-                return matchesSearch && matchesStatus;
-            }));
-        }
 
         function showCandidateAction(candidateId, actionType) {
             const candidate = candidates.find(c => c.id === candidateId);
@@ -356,7 +282,6 @@
             
             // Populate modal
             document.getElementById('modal-candidate-name').textContent = candidate.name;
-            document.getElementById('modal-candidate-location').textContent = `${candidate.age} years, ${candidate.location}`;
             document.getElementById('candidate-id').value = candidateId;
             document.getElementById('action-type').value = actionType;
             
@@ -374,7 +299,6 @@
                     title.textContent = 'Approve Candidate';
                     reasonSelect.innerHTML = `
                         <option value="">Select reason for approval</option>
-                        <option value="skills-excellent">Excellent skills match</option>
                         <option value="experience-relevant">Relevant experience</option>
                         <option value="cultural-fit">Good cultural fit</option>
                         <option value="qualifications">Strong qualifications</option>
@@ -384,7 +308,6 @@
                     title.textContent = 'Reject Candidate';
                     reasonSelect.innerHTML = `
                         <option value="">Select reason for rejection</option>
-                        <option value="skills-mismatch">Skills mismatch</option>
                         <option value="experience-insufficient">Insufficient experience</option>
                         <option value="overqualified">Overqualified</option>
                         <option value="salary-expectations">Salary expectations too high</option>
@@ -434,7 +357,7 @@
                 
                 // Close modal and refresh candidates
                 bootstrap.Modal.getInstance(document.getElementById('candidateActionModal')).hide();
-                loadJobOrderDetails(currentJobOrder.id);
+                window.tprcApp.loadJobOrderDetails(currentJobOrder.id);
                 
                 // Show success message
                 showAlert('success', `Candidate action "${actionData.actionType}" submitted successfully! ${response.workflow_triggered ? 'Workflow triggered.' : ''}`);

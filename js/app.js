@@ -70,21 +70,8 @@ class TPRCApp {
         }
     }
 
-    // Setup applicant breadcrumb navigation
-    setupApplicantBreadcrumb(applicant, jobOrder) {
-        const breadcrumbContainer = document.querySelector('.breadcrumb');
-        if (!breadcrumbContainer) return;
-        
-        breadcrumbContainer.innerHTML = `
-            <li class="breadcrumb-item"><a href="dashboard.html">Dashboard</a></li>
-            <li class="breadcrumb-item">
-                <a href="job-order.html?id=${jobOrder?.id || ''}">${jobOrder?.title || 'Job Order'}</a>
-            </li>
-            <li class="breadcrumb-item active" aria-current="page">
-                ${applicant?.first_name || 'Unknown'} ${applicant?.last_name || 'Applicant'}
-            </li>
-        `;
-    }
+    // Setup applicant breadcrumb navigation - REMOVED
+    // Note: Breadcrumb updates are now handled directly in applicant.html
 
     // Dashboard initialization
     async initializeDashboard() {
@@ -154,10 +141,8 @@ class TPRCApp {
             // Load applicant details
             await this.loadApplicantDetails(applicantId);
             
-            // Setup breadcrumb if job order ID is provided
-            if (jobOrderId) {
-                this.setupApplicantBreadcrumb(jobOrderId);
-            }
+            // Breadcrumb setup is now handled directly in applicant.html
+            // No longer overriding breadcrumb here
             
             // Setup applicant event listeners
             this.setupApplicantEventListeners();
@@ -239,7 +224,6 @@ class TPRCApp {
             // Update job details
             document.getElementById('job-description').textContent = jobOrder.description || 'No description available';
             document.getElementById('job-created-date').textContent = this.formatDate(jobOrder.created_date);
-            document.getElementById('job-deadline').textContent = this.formatDate(jobOrder.deadline);
             document.getElementById('job-salary-range').textContent = jobOrder.salary_range || 'Not specified';
             document.getElementById('job-benefits').textContent = jobOrder.benefits || 'Not specified';
             
@@ -335,9 +319,6 @@ class TPRCApp {
             this.debounce(() => this.filterCandidates(), 300)
         );
         
-        document.getElementById('filter-candidates')?.addEventListener('change', () => {
-            this.filterCandidates();
-        });
 
         // Tab switching
         document.querySelectorAll('#jobTabs button').forEach(tab => {
@@ -393,22 +374,29 @@ class TPRCApp {
         try {
             const jobOrder = await this.hubspotAPI.getJobOrder(jobOrderId);
             
-            // Update job order header
-            document.getElementById('job-title').textContent = jobOrder.title;
-            document.getElementById('job-type').textContent = jobOrder.position_type || 'N/A';
-            document.getElementById('job-location').textContent = jobOrder.location || 'N/A';
-            document.getElementById('job-status').textContent = jobOrder.status;
-            document.getElementById('job-description').textContent = jobOrder.description || 'No description available';
-            document.getElementById('job-created-date').textContent = formatDate(jobOrder.created_date);
-            document.getElementById('job-deadline').textContent = formatDate(jobOrder.deadline);
+            // Update job order header with null checks
+            const jobTitleEl = document.getElementById('job-title');
+            if (jobTitleEl) jobTitleEl.textContent = jobOrder.title;
+            
+            const jobTypeEl = document.getElementById('job-type');
+            if (jobTypeEl) jobTypeEl.textContent = jobOrder.position_type || 'N/A';
+            
+            const jobStatusEl = document.getElementById('job-status');
+            if (jobStatusEl) jobStatusEl.textContent = jobOrder.status;
+            
+            const jobDescEl = document.getElementById('job-description');
+            if (jobDescEl) jobDescEl.textContent = jobOrder.description || 'No description available';
+            
+            const jobCreatedEl = document.getElementById('job-created-date');
+            if (jobCreatedEl) jobCreatedEl.textContent = formatDate(jobOrder.created_date);
+            
 
             // Load candidates
             const candidates = await this.hubspotAPI.getCandidates(jobOrderId);
             this.renderCandidates(candidates);
-            document.getElementById('candidates-count').textContent = candidates.length;
+            const candidatesCountEl = document.getElementById('candidates-count');
+            if (candidatesCountEl) candidatesCountEl.textContent = candidates.length;
 
-            // Load requirements
-            this.loadJobRequirements(jobOrder);
 
             // Load job history
             this.loadJobHistory(jobOrderId);
@@ -454,12 +442,6 @@ class TPRCApp {
             const nameEl = document.getElementById('applicant-name');
             if (nameEl) nameEl.textContent = `${applicant.first_name || 'Unknown'} ${applicant.last_name || 'Applicant'}`;
             
-            const ageEl = document.getElementById('applicant-age');
-            if (ageEl) ageEl.textContent = applicant.age || 'N/A';
-            
-            const locationEl = document.getElementById('applicant-location');
-            if (locationEl) locationEl.textContent = applicant.location || 'N/A';
-            
             const emailEl = document.getElementById('applicant-email');
             if (emailEl) emailEl.textContent = applicant.email || 'N/A';
             
@@ -469,12 +451,13 @@ class TPRCApp {
             const statusEl = document.getElementById('applicant-status');
             if (statusEl) statusEl.textContent = applicant.status || 'N/A';
             
-            const summaryEl = document.getElementById('applicant-summary');
-            if (summaryEl) summaryEl.textContent = applicant.summary || 'No summary available';
             
             // Also update the professional summary section
             const profSummaryEl = document.getElementById('professional-summary');
-            if (profSummaryEl) profSummaryEl.textContent = applicant.summary || 'No professional summary available';
+            if (profSummaryEl) {
+                const profSummary = applicant.cirrusai_skills_match_reasons || applicant.summary;
+                profSummaryEl.textContent = profSummary || 'No professional summary available';
+            }
 
             // Update application details in header
             const appliedDate = applicant.created_date || applicant.createdate || applicant.application_date || new Date().toISOString();
@@ -744,7 +727,7 @@ class TPRCApp {
         if (candidates.length === 0) {
             candidatesList.innerHTML = `
                 <tr>
-                    <td colspan="7" class="text-center py-4">
+                    <td colspan="4" class="text-center py-4">
                         <i class="fas fa-users fa-2x text-muted mb-2"></i>
                         <p class="mb-0">No candidates available for this job order</p>
                     </td>
@@ -764,22 +747,6 @@ class TPRCApp {
                             <h6 class="mb-0">${escapeHtml(candidate.name)}</h6>
                             <small class="text-muted">${escapeHtml(candidate.email || '')}</small>
                         </div>
-                    </div>
-                </td>
-                <td>
-                    <span class="text-muted">${candidate.age || '-'}</span>
-                </td>
-                <td>
-                    <span class="text-muted">
-                        <i class="fas fa-map-marker-alt me-1"></i>${escapeHtml(candidate.location || '-')}
-                    </span>
-                </td>
-                <td>
-                    <div class="skills-container">
-                        ${(candidate.skills || []).slice(0, 3).map(skill => 
-                            `<span class="badge bg-light text-dark me-1 mb-1">${escapeHtml(skill)}</span>`
-                        ).join('')}
-                        ${(candidate.skills || []).length > 3 ? `<span class="badge bg-secondary">+${(candidate.skills || []).length - 3}</span>` : ''}
                     </div>
                 </td>
                 <td>
@@ -844,16 +811,13 @@ class TPRCApp {
     // Filter candidates
     filterCandidates() {
         const searchTerm = document.getElementById('search-candidates')?.value.toLowerCase() || '';
-        const statusFilter = document.getElementById('filter-candidates')?.value || '';
         
         if (!window.candidates) return;
         
         const filteredCandidates = window.candidates.filter(candidate => {
-            const matchesSearch = !searchTerm || 
+            return !searchTerm || 
                 candidate.name.toLowerCase().includes(searchTerm) ||
                 candidate.location.toLowerCase().includes(searchTerm);
-            const matchesStatus = !statusFilter || candidate.status === statusFilter;
-            return matchesSearch && matchesStatus;
         });
         
         this.renderCandidates(filteredCandidates);
@@ -974,33 +938,6 @@ class TPRCApp {
         console.log('Applicant tab switched to:', tabId);
     }
 
-    // Load job requirements
-    loadJobRequirements(jobOrder) {
-        const essentialReqs = document.getElementById('essential-requirements');
-        const preferredReqs = document.getElementById('preferred-requirements');
-        const salaryRange = document.getElementById('salary-range');
-        const benefits = document.getElementById('benefits');
-
-        if (essentialReqs) {
-            essentialReqs.innerHTML = (jobOrder.essential_requirements || ['No essential requirements specified']).map(req => 
-                `<li class="mb-2"><i class="fas fa-check-circle text-success me-2"></i>${escapeHtml(req)}</li>`
-            ).join('');
-        }
-
-        if (preferredReqs) {
-            preferredReqs.innerHTML = (jobOrder.preferred_requirements || ['No preferred requirements specified']).map(req => 
-                `<li class="mb-2"><i class="fas fa-plus-circle text-info me-2"></i>${escapeHtml(req)}</li>`
-            ).join('');
-        }
-
-        if (salaryRange) {
-            salaryRange.textContent = jobOrder.salary_range || 'Not specified';
-        }
-
-        if (benefits) {
-            benefits.textContent = jobOrder.benefits || 'Not specified';
-        }
-    }
 
     // Load job history
     async loadJobHistory(jobOrderId) {
@@ -1049,7 +986,7 @@ class TPRCApp {
             // Professional summary
             const summaryEl = document.getElementById('professional-summary');
             if (summaryEl) {
-                summaryEl.textContent = applicant.summary || applicant.professional_summary || 'No professional summary available';
+                summaryEl.textContent = applicant.cirrusai_skills_match_reasons || 'No professional summary available';
                 console.log('Professional summary updated');
             } else {
                 console.warn('professional-summary element not found');
@@ -1081,40 +1018,13 @@ class TPRCApp {
             }
         }
 
-        // Work experience - create basic entry if not provided
-        const experience = applicant.work_experience || applicant.experience;
-        if (typeof experience === 'string') {
-            // If experience is a string, create a basic structure
-            this.loadWorkExperience([{
-                position: 'Professional',
-                company: 'Various Companies',
-                description: experience,
-                start_date: 'N/A',
-                end_date: 'Present'
-            }]);
-        } else if (Array.isArray(experience)) {
-            this.loadWorkExperience(experience);
-        } else {
-            this.loadWorkExperience([]);
-        }
+        // Work experience - use cirrusai_contextual_fit_reasons
+        this.loadWorkExperience(applicant);
 
-        // Education - create basic entry if not provided
-        const education = applicant.education || [];
-        if (Array.isArray(education) && education.length > 0) {
-            this.loadEducation(education.map(edu => {
-                if (typeof edu === 'string') {
-                    return {
-                        degree: edu,
-                        field: 'General Studies',
-                        institution: 'Educational Institution',
-                        graduation_year: 'N/A'
-                    };
-                }
-                return edu;
-            }));
-        } else {
-            this.loadEducation([]);
-        }
+        // Education - use educations property  
+        this.loadEducation(applicant);
+
+        // Old education code removed - now using educations property directly
         
         console.log('loadApplicantOverview completed successfully');
         } catch (error) {
@@ -1124,45 +1034,46 @@ class TPRCApp {
     }
 
     // Load work experience
-    loadWorkExperience(experience) {
+    loadWorkExperience(applicant) {
         const experienceEl = document.getElementById('work-experience');
         if (!experienceEl) return;
 
-        if (experience.length === 0) {
-            experienceEl.innerHTML = '<div class="text-muted">No work experience listed</div>';
+        const contextualFitReasons = applicant.cirrusai_contextual_fit_reasons;
+        if (!contextualFitReasons) {
+            experienceEl.innerHTML = '<div class="text-muted">No contextual fit information available</div>';
             return;
         }
 
-        experienceEl.innerHTML = experience.map(exp => `
-            <div class="timeline-item">
-                <div class="timeline-content">
-                    <h6>${exp.position || 'Position'} at ${exp.company || 'Company'}</h6>
-                    <p class="mb-1">${exp.description || ''}</p>
-                    <small class="text-muted">${exp.start_date || 'N/A'} - ${exp.end_date || 'Present'}</small>
-                </div>
-            </div>
-        `).join('');
+        // Display the contextual fit reasons as text content
+        experienceEl.innerHTML = `<div class="text-content">${contextualFitReasons}</div>`;
     }
 
     // Load education
-    loadEducation(education) {
+    loadEducation(applicant) {
         const educationEl = document.getElementById('education');
         if (!educationEl) return;
 
-        if (education.length === 0) {
-            educationEl.innerHTML = '<div class="text-muted">No education listed</div>';
+        const educations = applicant.educations;
+        if (!educations || (Array.isArray(educations) && educations.length === 0)) {
+            educationEl.innerHTML = '<div class="text-muted">No education information available</div>';
             return;
         }
 
-        educationEl.innerHTML = education.map(edu => `
-            <div class="timeline-item">
-                <div class="timeline-content">
-                    <h6>${edu.degree || 'Degree'} in ${edu.field || 'Field of Study'}</h6>
-                    <p class="mb-1">${edu.institution || 'Institution'}</p>
-                    <small class="text-muted">${edu.graduation_year || 'N/A'}</small>
+        // If educations is an array, display each education entry
+        if (Array.isArray(educations)) {
+            educationEl.innerHTML = educations.map(edu => `
+                <div class="timeline-item">
+                    <div class="timeline-content">
+                        <h6>${edu.degree || 'Degree'} in ${edu.field || 'Field of Study'}</h6>
+                        <p class="mb-1">${edu.institution || 'Institution'}</p>
+                        <small class="text-muted">${edu.graduation_year || 'N/A'}</small>
+                    </div>
                 </div>
-            </div>
-        `).join('');
+            `).join('');
+        } else {
+            // If educations is a string or other format, display as text
+            educationEl.innerHTML = `<div class="text-content">${educations}</div>`;
+        }
     }
 
     // Utility function to format dates
